@@ -7,35 +7,35 @@
 
 'use strict';
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 //  CONSTANTS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 const COLS = 22, ROWS = 16;
 let CELL = 42;
 
 const TILE = Object.freeze({
-  FLOOR:     0,
-  WALL:      1,
-  START:     2,
-  EXIT:      3,
-  GEM:       4,
-  SHADOW:    5,
+  FLOOR: 0,
+  WALL: 1,
+  START: 2,
+  EXIT: 3,
+  GEM: 4,
+  SHADOW: 5,
   BREAKABLE: 6, // Cracked / Destructible wall (breakable with BOOM)
 });
 
 const GS = Object.freeze({
-  PATROL:    'patrol',
-  SUSPICIOUS:'suspicious',
-  ALERT:     'alert',
+  PATROL: 'patrol',
+  SUSPICIOUS: 'suspicious',
+  ALERT: 'alert',
   SEARCHING: 'searching',
 });
 
 const PLAYER_SPEED_NORMAL = 2.6;  // px/frame at 60fps
-const PLAYER_SPEED_SNEAK  = 1.3;
-const PLAYER_RADIUS       = 0.3;  // fraction of CELL
-const DETECTION_HOLD      = 0.35; // seconds in cone before ALERT
-const MAX_LIVES           = 3;
+const PLAYER_SPEED_SNEAK = 1.3;
+const PLAYER_RADIUS = 0.3;  // fraction of CELL
+const DETECTION_HOLD = 0.35; // seconds in cone before ALERT
+const MAX_LIVES = 3;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  8 HANDCRAFTED LEVELS
@@ -50,9 +50,9 @@ const LEVELS = [
 
   /* ── Level 1 · The Lobby ─────────────────────────────────────────── */
   {
-    name:     'Level 1 – The Lobby',
+    name: 'Level 1 – The Lobby',
     subtitle: 'Learn the basics. Plant a BOOM to smash cracked walls!',
-    bombs:    3,
+    bombs: 3,
     map: [
       '######################',
       '#S.........#.........#',
@@ -72,18 +72,22 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:16, row:2,  angle:Math.PI/2, fov:Math.PI*0.55, range:6.5, speed:1.2,
-        patrol:[{c:16,r:2},{c:16,r:13},{c:19,r:13},{c:19,r:2}] },
-      { col:3,  row:2,  angle:0,         fov:Math.PI*0.52, range:5.5, speed:1.0,
-        patrol:[{c:2,r:2},{c:9,r:2},{c:9,r:13},{c:2,r:13}] },
+      {
+        col: 16, row: 2, angle: Math.PI / 2, fov: Math.PI * 0.55, range: 6.5, speed: 1.2,
+        patrol: [{ c: 16, r: 2 }, { c: 16, r: 13 }, { c: 19, r: 13 }, { c: 19, r: 2 }]
+      },
+      {
+        col: 3, row: 2, angle: 0, fov: Math.PI * 0.52, range: 5.5, speed: 1.0,
+        patrol: [{ c: 2, r: 2 }, { c: 9, r: 2 }, { c: 9, r: 13 }, { c: 2, r: 13 }]
+      },
     ],
   },
 
   /* ── Level 2 · The Gallery ───────────────────────────────────────── */
   {
-    name:     'Level 2 – The Gallery',
+    name: 'Level 2 – The Gallery',
     subtitle: 'Narrow corridors. Demolish walls to reach locked gems.',
-    bombs:    3,
+    bombs: 3,
     map: [
       '######################',
       '#S...................#',
@@ -103,20 +107,26 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:15, row:2,  angle:Math.PI,     fov:Math.PI*0.58, range:6, speed:1.2,
-        patrol:[{c:19,r:2},{c:13,r:2},{c:13,r:7},{c:19,r:7}] },
-      { col:2,  row:10, angle:Math.PI/2,   fov:Math.PI*0.55, range:6, speed:1.1,
-        patrol:[{c:2,r:7},{c:2,r:13},{c:6,r:13},{c:6,r:7}] },
-      { col:15, row:11, angle:-Math.PI/2,  fov:Math.PI*0.52, range:5.5, speed:1.3,
-        patrol:[{c:14,r:11},{c:19,r:11},{c:19,r:14},{c:14,r:14}] },
+      {
+        col: 15, row: 2, angle: Math.PI, fov: Math.PI * 0.58, range: 6, speed: 1.2,
+        patrol: [{ c: 19, r: 2 }, { c: 13, r: 2 }, { c: 13, r: 7 }, { c: 19, r: 7 }]
+      },
+      {
+        col: 2, row: 10, angle: Math.PI / 2, fov: Math.PI * 0.55, range: 6, speed: 1.1,
+        patrol: [{ c: 2, r: 7 }, { c: 2, r: 13 }, { c: 6, r: 13 }, { c: 6, r: 7 }]
+      },
+      {
+        col: 15, row: 11, angle: -Math.PI / 2, fov: Math.PI * 0.52, range: 5.5, speed: 1.3,
+        patrol: [{ c: 14, r: 11 }, { c: 19, r: 11 }, { c: 19, r: 14 }, { c: 14, r: 14 }]
+      },
     ],
   },
 
   /* ── Level 3 · The Archive ───────────────────────────────────────── */
   {
-    name:     'Level 3 – The Archive',
+    name: 'Level 3 – The Archive',
     subtitle: 'Dense shelves. Shatter secret vaults; guards investigate noises.',
-    bombs:    3,
+    bombs: 3,
     map: [
       '######################',
       '#S...................#',
@@ -136,22 +146,30 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:10, row:2,  angle:Math.PI/2,   fov:Math.PI*0.60, range:6,   speed:1.1,
-        patrol:[{c:10,r:2},{c:10,r:6},{c:10,r:2}] },
-      { col:16, row:4,  angle:Math.PI/2,   fov:Math.PI*0.58, range:6,   speed:1.2,
-        patrol:[{c:16,r:2},{c:16,r:12},{c:19,r:12},{c:19,r:2}] },
-      { col:3,  row:10, angle:-Math.PI/2,  fov:Math.PI*0.55, range:5.5, speed:1.0,
-        patrol:[{c:3,r:9},{c:3,r:14},{c:7,r:14},{c:7,r:9}] },
-      { col:13, row:10, angle:0,           fov:Math.PI*0.55, range:6,   speed:1.3,
-        patrol:[{c:11,r:10},{c:19,r:10},{c:19,r:13},{c:11,r:13}] },
+      {
+        col: 10, row: 2, angle: Math.PI / 2, fov: Math.PI * 0.60, range: 6, speed: 1.1,
+        patrol: [{ c: 10, r: 2 }, { c: 10, r: 6 }, { c: 10, r: 2 }]
+      },
+      {
+        col: 16, row: 4, angle: Math.PI / 2, fov: Math.PI * 0.58, range: 6, speed: 1.2,
+        patrol: [{ c: 16, r: 2 }, { c: 16, r: 12 }, { c: 19, r: 12 }, { c: 19, r: 2 }]
+      },
+      {
+        col: 3, row: 10, angle: -Math.PI / 2, fov: Math.PI * 0.55, range: 5.5, speed: 1.0,
+        patrol: [{ c: 3, r: 9 }, { c: 3, r: 14 }, { c: 7, r: 14 }, { c: 7, r: 9 }]
+      },
+      {
+        col: 13, row: 10, angle: 0, fov: Math.PI * 0.55, range: 6, speed: 1.3,
+        patrol: [{ c: 11, r: 10 }, { c: 19, r: 10 }, { c: 19, r: 13 }, { c: 11, r: 13 }]
+      },
     ],
   },
 
   /* ── Level 4 · The Server Room ───────────────────────────────────── */
   {
-    name:     'Level 4 – The Server Room',
+    name: 'Level 4 – The Server Room',
     subtitle: 'High speed sweeps. Crack open server vaults for gems.',
-    bombs:    4,
+    bombs: 4,
     map: [
       '######################',
       '#S..................E#',
@@ -171,24 +189,34 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:5,  row:3,  angle:0,           fov:Math.PI*0.62, range:7, speed:1.4,
-        patrol:[{c:1,r:3},{c:20,r:3},{c:20,r:5},{c:1,r:5}] },
-      { col:15, row:5,  angle:Math.PI,     fov:Math.PI*0.62, range:7, speed:1.4,
-        patrol:[{c:20,r:5},{c:1,r:5},{c:1,r:7},{c:20,r:7}] },
-      { col:5,  row:7,  angle:0,           fov:Math.PI*0.62, range:7, speed:1.5,
-        patrol:[{c:1,r:7},{c:20,r:7},{c:20,r:9},{c:1,r:9}] },
-      { col:15, row:9,  angle:Math.PI,     fov:Math.PI*0.60, range:7, speed:1.4,
-        patrol:[{c:20,r:9},{c:1,r:9},{c:1,r:11},{c:20,r:11}] },
-      { col:5,  row:11, angle:0,           fov:Math.PI*0.62, range:7, speed:1.5,
-        patrol:[{c:1,r:11},{c:20,r:11},{c:20,r:13},{c:1,r:13}] },
+      {
+        col: 5, row: 3, angle: 0, fov: Math.PI * 0.62, range: 7, speed: 1.4,
+        patrol: [{ c: 1, r: 3 }, { c: 20, r: 3 }, { c: 20, r: 5 }, { c: 1, r: 5 }]
+      },
+      {
+        col: 15, row: 5, angle: Math.PI, fov: Math.PI * 0.62, range: 7, speed: 1.4,
+        patrol: [{ c: 20, r: 5 }, { c: 1, r: 5 }, { c: 1, r: 7 }, { c: 20, r: 7 }]
+      },
+      {
+        col: 5, row: 7, angle: 0, fov: Math.PI * 0.62, range: 7, speed: 1.5,
+        patrol: [{ c: 1, r: 7 }, { c: 20, r: 7 }, { c: 20, r: 9 }, { c: 1, r: 9 }]
+      },
+      {
+        col: 15, row: 9, angle: Math.PI, fov: Math.PI * 0.60, range: 7, speed: 1.4,
+        patrol: [{ c: 20, r: 9 }, { c: 1, r: 9 }, { c: 1, r: 11 }, { c: 20, r: 11 }]
+      },
+      {
+        col: 5, row: 11, angle: 0, fov: Math.PI * 0.62, range: 7, speed: 1.5,
+        patrol: [{ c: 1, r: 11 }, { c: 20, r: 11 }, { c: 20, r: 13 }, { c: 1, r: 13 }]
+      },
     ],
   },
 
   /* ── Level 5 · The Vault ─────────────────────────────────────────── */
   {
-    name:     'Level 5 – The Vault',
+    name: 'Level 5 – The Vault',
     subtitle: 'Reinforced bunker. Guard response is instant.',
-    bombs:    4,
+    bombs: 4,
     map: [
       '######################',
       '#S#.......#.......#.E#',
@@ -208,26 +236,38 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:5,  row:3,  angle:0,          fov:Math.PI*0.65, range:6,   speed:1.3,
-        patrol:[{c:1,r:3},{c:9,r:3},{c:9,r:6},{c:1,r:6}] },
-      { col:16, row:3,  angle:Math.PI,    fov:Math.PI*0.65, range:6,   speed:1.3,
-        patrol:[{c:20,r:3},{c:12,r:3},{c:12,r:6},{c:20,r:6}] },
-      { col:10, row:7,  angle:Math.PI/2,  fov:Math.PI*0.70, range:6.5, speed:1.2,
-        patrol:[{c:10,r:5},{c:10,r:13}] },
-      { col:3,  row:10, angle:-Math.PI/2, fov:Math.PI*0.65, range:6,   speed:1.4,
-        patrol:[{c:1,r:8},{c:9,r:8},{c:9,r:13},{c:1,r:13}] },
-      { col:18, row:10, angle:-Math.PI/2, fov:Math.PI*0.65, range:6,   speed:1.4,
-        patrol:[{c:20,r:8},{c:12,r:8},{c:12,r:13},{c:20,r:13}] },
-      { col:10, row:12, angle:Math.PI/2,  fov:Math.PI*0.68, range:5.5, speed:1.5,
-        patrol:[{c:10,r:11},{c:10,r:14}] },
+      {
+        col: 5, row: 3, angle: 0, fov: Math.PI * 0.65, range: 6, speed: 1.3,
+        patrol: [{ c: 1, r: 3 }, { c: 9, r: 3 }, { c: 9, r: 6 }, { c: 1, r: 6 }]
+      },
+      {
+        col: 16, row: 3, angle: Math.PI, fov: Math.PI * 0.65, range: 6, speed: 1.3,
+        patrol: [{ c: 20, r: 3 }, { c: 12, r: 3 }, { c: 12, r: 6 }, { c: 20, r: 6 }]
+      },
+      {
+        col: 10, row: 7, angle: Math.PI / 2, fov: Math.PI * 0.70, range: 6.5, speed: 1.2,
+        patrol: [{ c: 10, r: 5 }, { c: 10, r: 13 }]
+      },
+      {
+        col: 3, row: 10, angle: -Math.PI / 2, fov: Math.PI * 0.65, range: 6, speed: 1.4,
+        patrol: [{ c: 1, r: 8 }, { c: 9, r: 8 }, { c: 9, r: 13 }, { c: 1, r: 13 }]
+      },
+      {
+        col: 18, row: 10, angle: -Math.PI / 2, fov: Math.PI * 0.65, range: 6, speed: 1.4,
+        patrol: [{ c: 20, r: 8 }, { c: 12, r: 8 }, { c: 12, r: 13 }, { c: 20, r: 13 }]
+      },
+      {
+        col: 10, row: 12, angle: Math.PI / 2, fov: Math.PI * 0.68, range: 5.5, speed: 1.5,
+        patrol: [{ c: 10, r: 11 }, { c: 10, r: 14 }]
+      },
     ],
   },
 
   /* ── Level 6 · The Quarantine Sector (HARD) ──────────────────────── */
   {
-    name:     'Level 6 – The Quarantine',
+    name: 'Level 6 – The Quarantine',
     subtitle: 'Hazardous containment. 3 sealed cells require strategic booms.',
-    bombs:    5,
+    bombs: 5,
     map: [
       '######################',
       '#S.....#..B...#.....E#',
@@ -247,24 +287,34 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:4,  row:5,  angle:0,         fov:Math.PI*0.65, range:6.5, speed:1.4,
-        patrol:[{c:1,r:5},{c:9,r:5},{c:9,r:1},{c:1,r:1}] },
-      { col:17, row:5,  angle:Math.PI,   fov:Math.PI*0.65, range:6.5, speed:1.4,
-        patrol:[{c:20,r:5},{c:12,r:5},{c:12,r:1},{c:20,r:1}] },
-      { col:5,  row:7,  angle:0,         fov:Math.PI*0.60, range:7,   speed:1.5,
-        patrol:[{c:1,r:7},{c:20,r:7},{c:20,r:11},{c:1,r:11}] },
-      { col:10, row:11, angle:Math.PI,   fov:Math.PI*0.60, range:7,   speed:1.5,
-        patrol:[{c:20,r:11},{c:1,r:11},{c:1,r:7},{c:20,r:7}] },
-      { col:3,  row:14, angle:0,         fov:Math.PI*0.65, range:6.5, speed:1.3,
-        patrol:[{c:1,r:14},{c:20,r:14}] },
+      {
+        col: 4, row: 5, angle: 0, fov: Math.PI * 0.65, range: 6.5, speed: 1.4,
+        patrol: [{ c: 1, r: 5 }, { c: 9, r: 5 }, { c: 9, r: 1 }, { c: 1, r: 1 }]
+      },
+      {
+        col: 17, row: 5, angle: Math.PI, fov: Math.PI * 0.65, range: 6.5, speed: 1.4,
+        patrol: [{ c: 20, r: 5 }, { c: 12, r: 5 }, { c: 12, r: 1 }, { c: 20, r: 1 }]
+      },
+      {
+        col: 5, row: 7, angle: 0, fov: Math.PI * 0.60, range: 7, speed: 1.5,
+        patrol: [{ c: 1, r: 7 }, { c: 20, r: 7 }, { c: 20, r: 11 }, { c: 1, r: 11 }]
+      },
+      {
+        col: 10, row: 11, angle: Math.PI, fov: Math.PI * 0.60, range: 7, speed: 1.5,
+        patrol: [{ c: 20, r: 11 }, { c: 1, r: 11 }, { c: 1, r: 7 }, { c: 20, r: 7 }]
+      },
+      {
+        col: 3, row: 14, angle: 0, fov: Math.PI * 0.65, range: 6.5, speed: 1.3,
+        patrol: [{ c: 1, r: 14 }, { c: 20, r: 14 }]
+      },
     ],
   },
 
   /* ── Level 7 · The Shadow Citadel (VERY HARD) ────────────────────── */
   {
-    name:     'Level 7 – The Citadel',
+    name: 'Level 7 – The Citadel',
     subtitle: '7 elite sentinels. Demolish walls to create escape routes.',
-    bombs:    5,
+    bombs: 5,
     map: [
       '######################',
       '#S.......#......#....#',
@@ -284,28 +334,42 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:3,  row:1,  angle:0,         fov:Math.PI*0.65, range:6.5, speed:1.4,
-        patrol:[{c:1,r:1},{c:8,r:1},{c:8,r:6},{c:1,r:6}] },
-      { col:14, row:1,  angle:0,         fov:Math.PI*0.65, range:6.5, speed:1.4,
-        patrol:[{c:10,r:1},{c:19,r:1},{c:19,r:6},{c:10,r:6}] },
-      { col:2,  row:8,  angle:Math.PI/2, fov:Math.PI*0.65, range:6,   speed:1.3,
-        patrol:[{c:2,r:6},{c:2,r:12}] },
-      { col:18, row:8,  angle:Math.PI/2, fov:Math.PI*0.65, range:6,   speed:1.4,
-        patrol:[{c:18,r:6},{c:18,r:12}] },
-      { col:5,  row:14, angle:0,         fov:Math.PI*0.65, range:6.5, speed:1.5,
-        patrol:[{c:1,r:14},{c:10,r:14}] },
-      { col:15, row:14, angle:Math.PI,   fov:Math.PI*0.65, range:6.5, speed:1.5,
-        patrol:[{c:20,r:14},{c:11,r:14}] },
-      { col:10, row:10, angle:Math.PI/2, fov:Math.PI*0.70, range:6,   speed:1.3,
-        patrol:[{c:9,r:10},{c:12,r:10}] },
+      {
+        col: 3, row: 1, angle: 0, fov: Math.PI * 0.65, range: 6.5, speed: 1.4,
+        patrol: [{ c: 1, r: 1 }, { c: 8, r: 1 }, { c: 8, r: 6 }, { c: 1, r: 6 }]
+      },
+      {
+        col: 14, row: 1, angle: 0, fov: Math.PI * 0.65, range: 6.5, speed: 1.4,
+        patrol: [{ c: 10, r: 1 }, { c: 19, r: 1 }, { c: 19, r: 6 }, { c: 10, r: 6 }]
+      },
+      {
+        col: 2, row: 8, angle: Math.PI / 2, fov: Math.PI * 0.65, range: 6, speed: 1.3,
+        patrol: [{ c: 2, r: 6 }, { c: 2, r: 12 }]
+      },
+      {
+        col: 18, row: 8, angle: Math.PI / 2, fov: Math.PI * 0.65, range: 6, speed: 1.4,
+        patrol: [{ c: 18, r: 6 }, { c: 18, r: 12 }]
+      },
+      {
+        col: 5, row: 14, angle: 0, fov: Math.PI * 0.65, range: 6.5, speed: 1.5,
+        patrol: [{ c: 1, r: 14 }, { c: 10, r: 14 }]
+      },
+      {
+        col: 15, row: 14, angle: Math.PI, fov: Math.PI * 0.65, range: 6.5, speed: 1.5,
+        patrol: [{ c: 20, r: 14 }, { c: 11, r: 14 }]
+      },
+      {
+        col: 10, row: 10, angle: Math.PI / 2, fov: Math.PI * 0.70, range: 6, speed: 1.3,
+        patrol: [{ c: 9, r: 10 }, { c: 12, r: 10 }]
+      },
     ],
   },
 
   /* ── Level 8 · The Obsidian Core (ULTIMATE MASTER LEVEL) ─────────── */
   {
-    name:     'Level 8 – Obsidian Core',
+    name: 'Level 8 – Obsidian Core',
     subtitle: 'The ultimate vault. 8 lethal guards. Master your booms.',
-    bombs:    6,
+    bombs: 6,
     map: [
       '######################',
       '#S.......#......#...E#',
@@ -325,22 +389,38 @@ const LEVELS = [
       '######################',
     ],
     guards: [
-      { col:4,  row:1,  angle:0,         fov:Math.PI*0.68, range:6.5, speed:1.6,
-        patrol:[{c:1,r:1},{c:8,r:1},{c:8,r:5},{c:1,r:5}] },
-      { col:15, row:1,  angle:Math.PI,   fov:Math.PI*0.68, range:6.5, speed:1.6,
-        patrol:[{c:19,r:1},{c:10,r:1},{c:10,r:5},{c:19,r:5}] },
-      { col:2,  row:7,  angle:Math.PI/2, fov:Math.PI*0.70, range:6,   speed:1.5,
-        patrol:[{c:2,r:7},{c:2,r:11}] },
-      { col:18, row:7,  angle:Math.PI/2, fov:Math.PI*0.70, range:6,   speed:1.5,
-        patrol:[{c:18,r:7},{c:18,r:11}] },
-      { col:5,  row:14, angle:0,         fov:Math.PI*0.68, range:6.5, speed:1.6,
-        patrol:[{c:1,r:14},{c:10,r:14}] },
-      { col:15, row:14, angle:Math.PI,   fov:Math.PI*0.68, range:6.5, speed:1.6,
-        patrol:[{c:20,r:14},{c:11,r:14}] },
-      { col:10, row:9,  angle:Math.PI/2, fov:Math.PI*0.70, range:6,   speed:1.5,
-        patrol:[{c:8,r:9},{c:13,r:9}] },
-      { col:10, row:12, angle:-Math.PI/2,fov:Math.PI*0.70, range:6,   speed:1.5,
-        patrol:[{c:8,r:12},{c:13,r:12}] },
+      {
+        col: 4, row: 1, angle: 0, fov: Math.PI * 0.68, range: 6.5, speed: 1.6,
+        patrol: [{ c: 1, r: 1 }, { c: 8, r: 1 }, { c: 8, r: 5 }, { c: 1, r: 5 }]
+      },
+      {
+        col: 15, row: 1, angle: Math.PI, fov: Math.PI * 0.68, range: 6.5, speed: 1.6,
+        patrol: [{ c: 19, r: 1 }, { c: 10, r: 1 }, { c: 10, r: 5 }, { c: 19, r: 5 }]
+      },
+      {
+        col: 2, row: 7, angle: Math.PI / 2, fov: Math.PI * 0.70, range: 6, speed: 1.5,
+        patrol: [{ c: 2, r: 7 }, { c: 2, r: 11 }]
+      },
+      {
+        col: 18, row: 7, angle: Math.PI / 2, fov: Math.PI * 0.70, range: 6, speed: 1.5,
+        patrol: [{ c: 18, r: 7 }, { c: 18, r: 11 }]
+      },
+      {
+        col: 5, row: 14, angle: 0, fov: Math.PI * 0.68, range: 6.5, speed: 1.6,
+        patrol: [{ c: 1, r: 14 }, { c: 10, r: 14 }]
+      },
+      {
+        col: 15, row: 14, angle: Math.PI, fov: Math.PI * 0.68, range: 6.5, speed: 1.6,
+        patrol: [{ c: 20, r: 14 }, { c: 11, r: 14 }]
+      },
+      {
+        col: 10, row: 9, angle: Math.PI / 2, fov: Math.PI * 0.70, range: 6, speed: 1.5,
+        patrol: [{ c: 8, r: 9 }, { c: 13, r: 9 }]
+      },
+      {
+        col: 10, row: 12, angle: -Math.PI / 2, fov: Math.PI * 0.70, range: 6, speed: 1.5,
+        patrol: [{ c: 8, r: 12 }, { c: 13, r: 12 }]
+      },
     ],
   },
 ];
@@ -354,34 +434,34 @@ let levelIndex = 0;
 let lives = MAX_LIVES;
 let globalGems = 0;
 
-let tiles       = [];      // 2D grid
-let gemList     = [];      // {c,r,collected,anim}
+let tiles = [];      // 2D grid
+let gemList = [];      // {c,r,collected,anim}
 let bombPickups = [];      // {c,r,collected}
-let exitCell    = {c:0, r:0};
-let startCell   = {c:0, r:0};
+let exitCell = { c: 0, r: 0 };
+let startCell = { c: 0, r: 0 };
 
-let player      = {};
-let guards      = [];
-let particles   = [];
-let bombs       = [];      // Active placed bombs
-let explosions  = [];      // Expanding shockwave FX
+let player = {};
+let guards = [];
+let particles = [];
+let bombs = [];      // Active placed bombs
+let explosions = [];      // Expanding shockwave FX
 let scorchMarks = [];      // Ground marks after detonation
 
-let bombCount   = 3;
+let bombCount = 3;
 let bombRechargeTimer = 0; // Backup recharge so player never softlocks
 
-let keys        = {};
-let gamePhase   = 'menu';  // menu | playing | caught | levelcomplete | gameover | victory
+let keys = {};
+let gamePhase = 'menu';  // menu | playing | caught | levelcomplete | gameover | victory
 let catchCooldown = 0;
-let detectionBar  = 0;
+let detectionBar = 0;
 
-let animId   = null;
+let animId = null;
 let lastTime = 0;
 
-let sessionStats = { time:0, catches:0, gemsTotal:0, wallsBlown:0 };
+let sessionStats = { time: 0, catches: 0, gemsTotal: 0, wallsBlown: 0 };
 let levelStartTime = 0;
 
-let unlockedLevels  = [0];
+let unlockedLevels = [0];
 let completedLevels = [];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -395,11 +475,11 @@ function getAudio() {
   return audioCtx;
 }
 
-function playTone(freq, type, dur, vol=0.3, delay=0) {
+function playTone(freq, type, dur, vol = 0.3, delay = 0) {
   try {
-    const ac  = getAudio();
+    const ac = getAudio();
     const osc = ac.createOscillator();
-    const gain= ac.createGain();
+    const gain = ac.createGain();
     osc.connect(gain); gain.connect(ac.destination);
     osc.type = type;
     osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
@@ -407,18 +487,18 @@ function playTone(freq, type, dur, vol=0.3, delay=0) {
     gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + dur);
     osc.start(ac.currentTime + delay);
     osc.stop(ac.currentTime + delay + dur + 0.05);
-  } catch(e) {}
+  } catch (e) { }
 }
 
-function sfxGem()    { playTone(880,'sine',.08,.25); playTone(1100,'sine',.12,.2,.08); }
-function sfxCaught() { playTone(200,'sawtooth',.4,.3); playTone(100,'square',.5,.3,.1); }
-function sfxAlert()  { playTone(440,'square',.1,.35); playTone(660,'square',.15,.3,.12); }
-function sfxExit()   {
-  [523,659,784,1047].forEach((f,i)=>playTone(f,'sine',.18,.25,i*.09));
+function sfxGem() { playTone(880, 'sine', .08, .25); playTone(1100, 'sine', .12, .2, .08); }
+function sfxCaught() { playTone(200, 'sawtooth', .4, .3); playTone(100, 'square', .5, .3, .1); }
+function sfxAlert() { playTone(440, 'square', .1, .35); playTone(660, 'square', .15, .3, .12); }
+function sfxExit() {
+  [523, 659, 784, 1047].forEach((f, i) => playTone(f, 'sine', .18, .25, i * .09));
 }
-function sfxStep()   { playTone(120,'sine',.04,.04); }
-function sfxFuse()   { playTone(950,'square',.04,.15); }
-function sfxPickup() { playTone(540,'triangle',.09,.25); playTone(780,'sine',.14,.25,.08); }
+function sfxStep() { playTone(120, 'sine', .04, .04); }
+function sfxFuse() { playTone(950, 'square', .04, .15); }
+function sfxPickup() { playTone(540, 'triangle', .09, .25); playTone(780, 'sine', .14, .25, .08); }
 
 // Punchy synthesized BOOM explosion (Rumble + Noise burst)
 function sfxBoom() {
@@ -453,7 +533,7 @@ function sfxBoom() {
     nGain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.42);
     noise.connect(filter); filter.connect(nGain); nGain.connect(ac.destination);
     noise.start(); noise.stop(ac.currentTime + 0.42);
-  } catch(e) {}
+  } catch (e) { }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -461,11 +541,11 @@ function sfxBoom() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function resizeCanvas() {
-  const wrap  = document.getElementById('canvas-wrap');
-  const maxW  = wrap.clientWidth  - 4;
-  const maxH  = wrap.clientHeight - 4;
+  const wrap = document.getElementById('canvas-wrap');
+  const maxW = wrap.clientWidth - 4;
+  const maxH = wrap.clientHeight - 4;
   CELL = Math.floor(Math.min(maxW / COLS, maxH / ROWS));
-  canvas.width  = CELL * COLS;
+  canvas.width = CELL * COLS;
   canvas.height = CELL * ROWS;
 }
 
@@ -474,8 +554,8 @@ function resizeCanvas() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function parseMap(lvl) {
-  tiles       = [];
-  gemList     = [];
+  tiles = [];
+  gemList = [];
   bombPickups = [];
 
   lvl.map.forEach((row, r) => {
@@ -483,16 +563,16 @@ function parseMap(lvl) {
     for (let c = 0; c < COLS; c++) {
       const ch = row[c] || '.';
       switch (ch) {
-        case '#': tileRow.push(TILE.WALL);      break;
+        case '#': tileRow.push(TILE.WALL); break;
         case 'B': tileRow.push(TILE.BREAKABLE); break; // Cracked wall
-        case 'S': tileRow.push(TILE.START);     startCell = {c, r}; break;
-        case 'E': tileRow.push(TILE.EXIT);      exitCell  = {c, r}; break;
+        case 'S': tileRow.push(TILE.START); startCell = { c, r }; break;
+        case 'E': tileRow.push(TILE.EXIT); exitCell = { c, r }; break;
         case 'G': tileRow.push(TILE.FLOOR);
-                  gemList.push({c, r, collected:false, anim:0, sparkle:0}); break;
+          gemList.push({ c, r, collected: false, anim: 0, sparkle: 0 }); break;
         case 'P': tileRow.push(TILE.FLOOR);
-                  bombPickups.push({c, r, collected:false}); break;
-        case 'D': tileRow.push(TILE.SHADOW);    break;
-        default:  tileRow.push(TILE.FLOOR);     break;
+          bombPickups.push({ c, r, collected: false }); break;
+        case 'D': tileRow.push(TILE.SHADOW); break;
+        default: tileRow.push(TILE.FLOOR); break;
       }
     }
     tiles.push(tileRow);
@@ -526,13 +606,13 @@ function castRay(ox, oy, angle, maxDist) {
     x += dx; y += dy; dist += step;
     const col = Math.floor(x / CELL);
     const row = Math.floor(y / CELL);
-    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return {x, y};
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return { x, y };
     // Ray blocks on unbreakable wall OR cracked breakable wall!
     if (tiles[row][col] === TILE.WALL || tiles[row][col] === TILE.BREAKABLE) {
-      return {x: x - dx*0.5, y: y - dy*0.5};
+      return { x: x - dx * 0.5, y: y - dy * 0.5 };
     }
   }
-  return {x, y};
+  return { x, y };
 }
 
 function buildConePolygon(guard) {
@@ -541,12 +621,12 @@ function buildConePolygon(guard) {
 
   const ox = guard.x, oy = guard.y;
   const halfFov = guard.fov / 2;
-  const range   = guard.range * CELL;
+  const range = guard.range * CELL;
   const pts = [];
 
   for (let i = 0; i <= NUM_RAYS; i++) {
     const angle = guard.lookAngle - halfFov + (guard.fov * i / NUM_RAYS);
-    const hit   = castRay(ox, oy, angle, range);
+    const hit = castRay(ox, oy, angle, range);
     pts.push(hit);
   }
   return pts;
@@ -556,8 +636,8 @@ function buildConePolygon(guard) {
 function guardCanSeePlayer(guard) {
   if (guard.stunTimer > 0) return 0; // Stunned guards cannot see
 
-  const dx   = player.x - guard.x;
-  const dy   = player.y - guard.y;
+  const dx = player.x - guard.x;
+  const dy = player.y - guard.y;
   const dist = Math.hypot(dx, dy);
 
   const effectiveRange = guard.range * CELL *
@@ -566,7 +646,7 @@ function guardCanSeePlayer(guard) {
 
   const angleToPlayer = Math.atan2(dy, dx);
   let diff = angleToPlayer - guard.lookAngle;
-  while (diff >  Math.PI) diff -= 2 * Math.PI;
+  while (diff > Math.PI) diff -= 2 * Math.PI;
   while (diff < -Math.PI) diff += 2 * Math.PI;
 
   const effectiveFov = guard.fov *
@@ -576,7 +656,7 @@ function guardCanSeePlayer(guard) {
 
   const coneFraction = 1 - Math.abs(diff) / halfFov;
 
-  if (isShadow(Math.floor(player.x/CELL), Math.floor(player.y/CELL))) {
+  if (isShadow(Math.floor(player.x / CELL), Math.floor(player.y / CELL))) {
     if (dist > effectiveRange * 0.4) return 0;
   }
 
@@ -584,7 +664,7 @@ function guardCanSeePlayer(guard) {
 
   const steps = Math.max(8, Math.ceil(dist / (CELL * 0.3)));
   for (let i = 1; i <= steps; i++) {
-    const t  = i / steps;
+    const t = i / steps;
     const rx = guard.x + dx * t;
     const ry = guard.y + dy * t;
     const col = Math.floor(rx / CELL);
@@ -621,10 +701,10 @@ function updatePlayer(dt) {
   const speed = (player.sneaking ? PLAYER_SPEED_SNEAK : PLAYER_SPEED_NORMAL) * (CELL / 42);
   let dx = 0, dy = 0;
 
-  if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx -= 1;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx -= 1;
   if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += 1;
-  if (keys['ArrowUp']    || keys['w'] || keys['W']) dy -= 1;
-  if (keys['ArrowDown']  || keys['s'] || keys['S']) dy += 1;
+  if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += 1;
 
   if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
 
@@ -644,14 +724,14 @@ function updatePlayer(dt) {
   // AABB collision with walls
   const nx = player.x + dx * speed;
   const ny = player.y + dy * speed;
-  const r  = player.radius;
+  const r = player.radius;
 
   if (!collidesWithWalls(nx, player.y, r)) player.x = nx;
   if (!collidesWithWalls(player.x, ny, r)) player.y = ny;
 
   // Trail
   if (player.moving) {
-    player.trail.unshift({x: player.x, y: player.y, alpha: 0.55});
+    player.trail.unshift({ x: player.x, y: player.y, alpha: 0.55 });
     if (player.trail.length > 10) player.trail.pop();
   }
   player.trail.forEach(t => { t.alpha *= 0.82; });
@@ -666,7 +746,7 @@ function updatePlayer(dt) {
       globalGems++;
       sessionStats.gemsTotal++;
       sfxGem();
-      spawnGemParticles(gem.c * CELL + CELL/2, gem.r * CELL + CELL/2);
+      spawnGemParticles(gem.c * CELL + CELL / 2, gem.r * CELL + CELL / 2);
       updateHUD();
     }
   }
@@ -677,7 +757,7 @@ function updatePlayer(dt) {
       p.collected = true;
       bombCount += 2;
       sfxPickup();
-      spawnSparkParticles(p.c * CELL + CELL/2, p.r * CELL + CELL/2, '#ff9800', 16);
+      spawnSparkParticles(p.c * CELL + CELL / 2, p.r * CELL + CELL / 2, '#ff9800', 16);
       updateHUD();
     }
   }
@@ -693,10 +773,10 @@ function updatePlayer(dt) {
 
 function collidesWithWalls(cx, cy, r) {
   const checks = [
-    {x: cx - r, y: cy - r},
-    {x: cx + r, y: cy - r},
-    {x: cx - r, y: cy + r},
-    {x: cx + r, y: cy + r},
+    { x: cx - r, y: cy - r },
+    { x: cx + r, y: cy - r },
+    { x: cx - r, y: cy + r },
+    { x: cx + r, y: cy + r },
   ];
   for (const pt of checks) {
     const col = Math.floor(pt.x / CELL);
@@ -771,10 +851,10 @@ function updateBombs(dt) {
 
     if (b.sparkTimer <= 0) {
       // Fuse sparks
-      const sx = b.x + CELL * 0.16 + (Math.random()-0.5)*4;
-      const sy = b.y - CELL * 0.28 + (Math.random()-0.5)*4;
-      spawnParticle(sx, sy, Math.random()>0.5 ? '#ffff00' : '#ff4500',
-        (Math.random()-0.5)*2, -Math.random()*2 - 0.5, 0.25, 2.5);
+      const sx = b.x + CELL * 0.16 + (Math.random() - 0.5) * 4;
+      const sy = b.y - CELL * 0.28 + (Math.random() - 0.5) * 4;
+      spawnParticle(sx, sy, Math.random() > 0.5 ? '#ffff00' : '#ff4500',
+        (Math.random() - 0.5) * 2, -Math.random() * 2 - 0.5, 0.25, 2.5);
       b.sparkTimer = 0.06;
     }
 
@@ -830,12 +910,12 @@ function detonateBomb(b) {
           // Wall rubble particles
           for (let p = 0; p < 24; p++) {
             const angle = Math.random() * Math.PI * 2;
-            const spd   = Math.random() * 4 + 1.5;
+            const spd = Math.random() * 4 + 1.5;
             spawnParticle(
               (tc + 0.5) * CELL, (tr + 0.5) * CELL,
               Math.random() > 0.4 ? '#ff9800' : '#4a5568',
-              Math.cos(angle)*spd, Math.sin(angle)*spd - 1,
-              0.6 + Math.random()*0.5, Math.random()*4 + 2
+              Math.cos(angle) * spd, Math.sin(angle) * spd - 1,
+              0.6 + Math.random() * 0.5, Math.random() * 4 + 2
             );
           }
         }
@@ -848,13 +928,13 @@ function detonateBomb(b) {
     const a = Math.random() * Math.PI * 2;
     const s = Math.random() * 4.5 + 1;
     spawnParticle(b.x, b.y, Math.random() > 0.3 ? '#ff5500' : '#ffcc00',
-      Math.cos(a)*s, Math.sin(a)*s - 0.5, 0.45 + Math.random()*0.4, Math.random()*4+2);
+      Math.cos(a) * s, Math.sin(a) * s - 0.5, 0.45 + Math.random() * 0.4, Math.random() * 4 + 2);
   }
   for (let i = 0; i < 15; i++) {
     const a = Math.random() * Math.PI * 2;
     const s = Math.random() * 2 + 0.5;
     spawnParticle(b.x, b.y, 'rgba(40,40,50,0.6)',
-      Math.cos(a)*s, Math.sin(a)*s - 1, 0.8 + Math.random()*0.5, Math.random()*6+4);
+      Math.cos(a) * s, Math.sin(a) * s - 1, 0.8 + Math.random() * 0.5, Math.random() * 6 + 4);
   }
 
   // Guard interactions: Stun if close; Sound Alert if within hearing
@@ -863,19 +943,19 @@ function detonateBomb(b) {
 
     if (dist < CELL * 1.7) {
       // Guard stunned by explosion!
-      g.stunTimer  = 4.5;
-      g.state      = GS.SUSPICIOUS;
+      g.stunTimer = 4.5;
+      g.state = GS.SUSPICIOUS;
       g.stateTimer = 4.5;
       g.detectionAccum = 0;
       // Stars particles
       for (let s = 0; s < 10; s++) {
-        spawnParticle(g.x, g.y, '#facc15', (Math.random()-0.5)*3, -Math.random()*3 - 1, 0.8, 3);
+        spawnParticle(g.x, g.y, '#facc15', (Math.random() - 0.5) * 3, -Math.random() * 3 - 1, 0.8, 3);
       }
     } else if (dist < CELL * 16 && g.stunTimer <= 0) {
       // Guard hears explosion & rushes to investigate the BOOM!
       g.lastKnownX = b.x;
       g.lastKnownY = b.y;
-      g.state      = GS.ALERT;
+      g.state = GS.ALERT;
       g.stateTimer = 5.0;
       g.alertFlash = 1;
     }
@@ -900,38 +980,38 @@ function initGuards(lvl) {
     startCol: def.col,
     startRow: def.row,
     startAngle: def.angle,
-    lookAngle:  def.angle,
-    moveAngle:  def.angle,
-    fov:        def.fov,
-    range:      def.range,
-    speed:      def.speed,
-    patrol:     def.patrol,
-    patrolIdx:  0,
-    state:      GS.PATROL,
+    lookAngle: def.angle,
+    moveAngle: def.angle,
+    fov: def.fov,
+    range: def.range,
+    speed: def.speed,
+    patrol: def.patrol,
+    patrolIdx: 0,
+    state: GS.PATROL,
     stateTimer: 0,
     detectionAccum: 0,
     lastKnownX: 0,
     lastKnownY: 0,
     searchOscPhase: 0,
     alertFlash: 0,
-    stunTimer:  0,
+    stunTimer: 0,
     cone: [],
   }));
 }
 
 function resetGuardsToPatrol() {
   guards.forEach(g => {
-    g.state          = GS.PATROL;
-    g.stateTimer     = 0;
+    g.state = GS.PATROL;
+    g.stateTimer = 0;
     g.detectionAccum = 0;
-    g.alertFlash     = 0;
-    g.stunTimer      = 0;
+    g.alertFlash = 0;
+    g.stunTimer = 0;
   });
 }
 
 function lerpAngle(from, to, t) {
   let diff = to - from;
-  while (diff >  Math.PI) diff -= 2 * Math.PI;
+  while (diff > Math.PI) diff -= 2 * Math.PI;
   while (diff < -Math.PI) diff += 2 * Math.PI;
   return from + diff * Math.min(1, t);
 }
@@ -994,14 +1074,14 @@ function updateGuards(dt) {
 
         const tlx = g.lastKnownX, tly = g.lastKnownY;
         const tdx = tlx - g.x, tdy = tly - g.y;
-        const td  = Math.hypot(tdx, tdy);
+        const td = Math.hypot(tdx, tdy);
 
         if (td > CELL * 0.4) {
           const spd = g.speed * CELL * 0.018 * 1.6 * dt * 60;
-          const nx  = g.x + (tdx/td)*spd;
-          const ny  = g.y + (tdy/td)*spd;
-          if (!collidesWithWalls(nx, g.y, CELL*0.35)) g.x = nx;
-          if (!collidesWithWalls(g.x, ny, CELL*0.35)) g.y = ny;
+          const nx = g.x + (tdx / td) * spd;
+          const ny = g.y + (tdy / td) * spd;
+          if (!collidesWithWalls(nx, g.y, CELL * 0.35)) g.x = nx;
+          if (!collidesWithWalls(g.x, ny, CELL * 0.35)) g.y = ny;
           g.moveAngle = Math.atan2(tdy, tdx);
         }
 
@@ -1048,12 +1128,12 @@ function updateGuards(dt) {
 
 function movePatrol(g, dt) {
   if (!g.patrol || g.patrol.length < 2) return;
-  const wp  = g.patrol[g.patrolIdx % g.patrol.length];
-  const tx  = (wp.c + 0.5) * CELL;
-  const ty  = (wp.r + 0.5) * CELL;
-  const dx  = tx - g.x;
-  const dy  = ty - g.y;
-  const dist= Math.hypot(dx, dy);
+  const wp = g.patrol[g.patrolIdx % g.patrol.length];
+  const tx = (wp.c + 0.5) * CELL;
+  const ty = (wp.r + 0.5) * CELL;
+  const dx = tx - g.x;
+  const dy = ty - g.y;
+  const dist = Math.hypot(dx, dy);
 
   if (dist < CELL * 0.15) {
     g.patrolIdx = (g.patrolIdx + 1) % g.patrol.length;
@@ -1061,25 +1141,25 @@ function movePatrol(g, dt) {
   }
 
   const spd = g.speed * CELL * 0.018 * dt * 60;
-  const nx  = g.x + (dx/dist)*spd;
-  const ny  = g.y + (dy/dist)*spd;
+  const nx = g.x + (dx / dist) * spd;
+  const ny = g.y + (dy / dist) * spd;
   g.moveAngle = Math.atan2(dy, dx);
 
-  if (!collidesWithWalls(nx, g.y, CELL*0.35)) g.x = nx;
-  if (!collidesWithWalls(g.x, ny, CELL*0.35)) g.y = ny;
+  if (!collidesWithWalls(nx, g.y, CELL * 0.35)) g.x = nx;
+  if (!collidesWithWalls(g.x, ny, CELL * 0.35)) g.y = ny;
 }
 
 function enterAlert(g) {
   if (g.state !== GS.ALERT) sfxAlert();
-  g.state         = GS.ALERT;
-  g.stateTimer    = 5.0;
-  g.lastKnownX    = player.x;
-  g.lastKnownY    = player.y;
-  g.detectionAccum= 1;
+  g.state = GS.ALERT;
+  g.stateTimer = 5.0;
+  g.lastKnownX = player.x;
+  g.lastKnownY = player.y;
+  g.detectionAccum = 1;
 }
 
 function enterSearching(g) {
-  g.state      = GS.SEARCHING;
+  g.state = GS.SEARCHING;
   g.stateTimer = 4.0;
   g.searchOscPhase = 0;
 }
@@ -1109,7 +1189,7 @@ function catchPlayer(reason = "Captured by guard!") {
     document.getElementById('caught-title').textContent =
       reason.includes("blast") ? "💥 BLASTED!" : "🚨 CAUGHT!";
     document.getElementById('caught-lives-left').textContent =
-      `${lives} ${lives===1?'life':'lives'} remaining`;
+      `${lives} ${lives === 1 ? 'life' : 'lives'} remaining`;
     document.getElementById('caught-hint').textContent = reason;
     showScreen('caught');
     setTimeout(() => {
@@ -1125,7 +1205,7 @@ function respawnPlayer() {
   initPlayer();
   resetGuardsToPatrol();
   catchCooldown = 0;
-  detectionBar  = 0;
+  detectionBar = 0;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1133,15 +1213,15 @@ function respawnPlayer() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function spawnParticle(x, y, color, vx, vy, life, size) {
-  particles.push({x, y, vx, vy, life, maxLife:life, color, size});
+  particles.push({ x, y, vx, vy, life, maxLife: life, color, size });
 }
 
 function spawnGemParticles(x, y) {
   for (let i = 0; i < 20; i++) {
     const a = Math.random() * Math.PI * 2;
     const s = Math.random() * 3 + 1;
-    spawnParticle(x, y, '#fbbf24', Math.cos(a)*s, Math.sin(a)*s,
-      0.5 + Math.random()*0.5, Math.random()*3+1);
+    spawnParticle(x, y, '#fbbf24', Math.cos(a) * s, Math.sin(a) * s,
+      0.5 + Math.random() * 0.5, Math.random() * 3 + 1);
   }
 }
 
@@ -1149,8 +1229,8 @@ function spawnSparkParticles(x, y, color, count) {
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2;
     const s = Math.random() * 3.5 + 1;
-    spawnParticle(x, y, color, Math.cos(a)*s, Math.sin(a)*s,
-      0.4 + Math.random()*0.4, Math.random()*3+1);
+    spawnParticle(x, y, color, Math.cos(a) * s, Math.sin(a) * s,
+      0.4 + Math.random() * 0.4, Math.random() * 3 + 1);
   }
 }
 
@@ -1158,17 +1238,17 @@ function spawnCaughtParticles(x, y) {
   for (let i = 0; i < 30; i++) {
     const a = Math.random() * Math.PI * 2;
     const s = Math.random() * 4 + 1;
-    spawnParticle(x, y, '#ff3355', Math.cos(a)*s, Math.sin(a)*s - 1,
-      0.8 + Math.random()*0.6, Math.random()*4+2);
+    spawnParticle(x, y, '#ff3355', Math.cos(a) * s, Math.sin(a) * s - 1,
+      0.8 + Math.random() * 0.6, Math.random() * 4 + 2);
   }
 }
 
 function updateParticles(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x    += p.vx;
-    p.y    += p.vy;
-    p.vy   += 0.08;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.08;
     p.life -= dt;
     if (p.life <= 0) particles.splice(i, 1);
   }
@@ -1251,7 +1331,7 @@ function render(dt) {
         ctx.fillStyle = '#111927';
         ctx.fillRect(x, y, CELL, CELL);
         ctx.strokeStyle = 'rgba(255,255,255,0.025)';
-        ctx.lineWidth   = 0.5;
+        ctx.lineWidth = 0.5;
         ctx.strokeRect(x + 0.25, y + 0.25, CELL - 0.5, CELL - 0.5);
       }
     }
@@ -1292,7 +1372,7 @@ function render(dt) {
   // ── Player trail ──────────────────────────
   player.trail.forEach(t => {
     ctx.beginPath();
-    ctx.arc(t.x, t.y, player.radius * 0.6, 0, Math.PI*2);
+    ctx.arc(t.x, t.y, player.radius * 0.6, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(0,212,255,${t.alpha * 0.35})`;
     ctx.fill();
   });
@@ -1304,7 +1384,7 @@ function render(dt) {
   particles.forEach(p => {
     const a = Math.max(0, p.life / p.maxLife);
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * a, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
     ctx.fillStyle = p.color;
     ctx.globalAlpha = a;
     ctx.fill();
@@ -1334,7 +1414,7 @@ function renderVisionCone(g) {
   ctx.closePath();
 
   const range = g.range * CELL;
-  const grad  = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, range);
+  const grad = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, range);
 
   let edgeColor;
   switch (g.state) {
@@ -1350,9 +1430,9 @@ function renderVisionCone(g) {
       break;
     case GS.ALERT:
       const flash = (Math.sin(g.alertFlash) + 1) * 0.5;
-      grad.addColorStop(0, `rgba(255,50,${Math.round(50*flash)},${0.38+flash*0.12})`);
+      grad.addColorStop(0, `rgba(255,50,${Math.round(50 * flash)},${0.38 + flash * 0.12})`);
       grad.addColorStop(1, 'rgba(255,50,50,0.06)');
-      edgeColor = `rgba(255,${Math.round(50+flash*100)},50,0.95)`;
+      edgeColor = `rgba(255,${Math.round(50 + flash * 100)},50,0.95)`;
       break;
     case GS.SEARCHING:
       grad.addColorStop(0, 'rgba(255,120,0,0.26)');
@@ -1373,7 +1453,7 @@ function renderVisionCone(g) {
   pts.forEach(p => ctx.lineTo(p.x, p.y));
   ctx.closePath();
   ctx.strokeStyle = edgeColor;
-  ctx.lineWidth   = 1.5;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   ctx.restore();
@@ -1381,17 +1461,17 @@ function renderVisionCone(g) {
 
 function drawGuard(g, dt) {
   const cx = g.x, cy = g.y;
-  const r  = CELL * 0.36;
+  const r = CELL * 0.36;
 
   // Stunned indicator
   if (g.stunTimer > 0) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 4, 0, Math.PI*2);
+    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(250,204,21,0.25)';
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fillStyle = '#222831';
     ctx.fill();
     ctx.strokeStyle = '#facc15';
@@ -1406,7 +1486,7 @@ function drawGuard(g, dt) {
     // Rotating dizzy stars
     const starAngle = performance.now() * 0.005;
     for (let s = 0; s < 3; s++) {
-      const a  = starAngle + (s * Math.PI * 2 / 3);
+      const a = starAngle + (s * Math.PI * 2 / 3);
       const sx = cx + Math.cos(a) * (r + 7);
       const sy = cy - 12 + Math.sin(a) * 4;
       ctx.font = `${CELL * 0.28}px sans-serif`;
@@ -1418,57 +1498,57 @@ function drawGuard(g, dt) {
   // Normal guard rendering
   let glowColor;
   switch (g.state) {
-    case GS.PATROL:     glowColor = 'rgba(255,255,150,0.3)'; break;
-    case GS.SUSPICIOUS: glowColor = 'rgba(255,175,0,0.4)';  break;
-    case GS.ALERT:      glowColor = 'rgba(255,50,50,0.55)';  break;
-    case GS.SEARCHING:  glowColor = 'rgba(255,120,0,0.4)';   break;
+    case GS.PATROL: glowColor = 'rgba(255,255,150,0.3)'; break;
+    case GS.SUSPICIOUS: glowColor = 'rgba(255,175,0,0.4)'; break;
+    case GS.ALERT: glowColor = 'rgba(255,50,50,0.55)'; break;
+    case GS.SEARCHING: glowColor = 'rgba(255,120,0,0.4)'; break;
   }
   ctx.beginPath();
-  ctx.arc(cx, cy, r + 5, 0, Math.PI*2);
+  ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
   ctx.fillStyle = glowColor;
   ctx.fill();
 
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   let bodyColor;
   switch (g.state) {
-    case GS.PATROL:     bodyColor = '#1a3a5c'; break;
+    case GS.PATROL: bodyColor = '#1a3a5c'; break;
     case GS.SUSPICIOUS: bodyColor = '#3a2800'; break;
-    case GS.ALERT:      bodyColor = '#3a0010'; break;
-    case GS.SEARCHING:  bodyColor = '#2a1800'; break;
+    case GS.ALERT: bodyColor = '#3a0010'; break;
+    case GS.SEARCHING: bodyColor = '#2a1800'; break;
   }
   ctx.fillStyle = bodyColor;
   ctx.fill();
   ctx.strokeStyle = g.state === GS.ALERT ? '#ff3355' :
-                    g.state === GS.SUSPICIOUS ? '#ff9800' :
-                    g.state === GS.SEARCHING ? '#ff6600' : '#4a8ab5';
-  ctx.lineWidth   = 2.5;
+    g.state === GS.SUSPICIOUS ? '#ff9800' :
+      g.state === GS.SEARCHING ? '#ff6600' : '#4a8ab5';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
   // Direction indicator
   ctx.beginPath();
   ctx.moveTo(cx, cy);
   ctx.lineTo(cx + Math.cos(g.lookAngle) * r * 1.3,
-             cy + Math.sin(g.lookAngle) * r * 1.3);
+    cy + Math.sin(g.lookAngle) * r * 1.3);
   ctx.strokeStyle = g.state === GS.ALERT ? '#ff6688' :
-                    g.state === GS.SUSPICIOUS ? '#ffbb44' : '#88ccff';
-  ctx.lineWidth   = 2.5;
-  ctx.lineCap     = 'round';
+    g.state === GS.SUSPICIOUS ? '#ffbb44' : '#88ccff';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
   ctx.stroke();
-  ctx.lineCap     = 'butt';
+  ctx.lineCap = 'butt';
 
   // Emoji face
-  ctx.font        = `${r * 1.05}px sans-serif`;
-  ctx.textAlign   = 'center';
-  ctx.textBaseline= 'middle';
+  ctx.font = `${r * 1.05}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.fillText(g.state === GS.ALERT ? '😡' :
-               g.state === GS.SUSPICIOUS ? '🤔' :
-               g.state === GS.SEARCHING  ? '🔍' : '😐', cx, cy);
+    g.state === GS.SUSPICIOUS ? '🤔' :
+      g.state === GS.SEARCHING ? '🔍' : '😐', cx, cy);
 
   // State icon above guard
   if (g.state !== GS.PATROL) {
     const icon = g.state === GS.ALERT ? '❗' :
-                 g.state === GS.SUSPICIOUS ? '❓' : '🔍';
+      g.state === GS.SUSPICIOUS ? '❓' : '🔍';
     ctx.font = `${CELL * 0.42}px sans-serif`;
     ctx.fillText(icon, cx, cy - r - 10);
   }
@@ -1477,59 +1557,59 @@ function drawGuard(g, dt) {
   if (g.detectionAccum > 0 && g.state !== GS.ALERT) {
     const pct = g.detectionAccum / DETECTION_HOLD;
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 7, -Math.PI/2, -Math.PI/2 + pct * Math.PI * 2);
+    ctx.arc(cx, cy, r + 7, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
     ctx.strokeStyle = `rgba(255,200,0,${pct})`;
-    ctx.lineWidth   = 3;
+    ctx.lineWidth = 3;
     ctx.stroke();
   }
 
-  ctx.textAlign    = 'left';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
 
 function drawPlayer(dt) {
   const cx = player.x;
   const cy = player.y + Math.sin(player.bobPhase) * 2;
-  const r  = player.radius;
+  const r = player.radius;
 
   // Outer glow
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.5);
   grad.addColorStop(0, 'rgba(0,212,255,0.25)');
   grad.addColorStop(1, 'rgba(0,212,255,0)');
   ctx.beginPath();
-  ctx.arc(cx, cy, r * 2.5, 0, Math.PI*2);
+  ctx.arc(cx, cy, r * 2.5, 0, Math.PI * 2);
   ctx.fillStyle = grad;
   ctx.fill();
 
   // Body
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = player.sneaking ? 'rgba(0,180,220,0.75)' : 'rgba(0,212,255,0.85)';
   ctx.fill();
   ctx.strokeStyle = '#00d4ff';
-  ctx.lineWidth   = 2;
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   // Ghost emoji
-  ctx.font        = `${r * 1.3}px sans-serif`;
-  ctx.textAlign   = 'center';
-  ctx.textBaseline= 'middle';
+  ctx.font = `${r * 1.3}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.fillText('👻', cx, cy);
 
   // Sneak indicator
   if (player.sneaking) {
-    ctx.font      = `${CELL * 0.3}px sans-serif`;
+    ctx.font = `${CELL * 0.3}px sans-serif`;
     ctx.fillStyle = 'rgba(0,212,255,0.75)';
     ctx.fillText('🥷', cx, cy - r - 10);
   }
 
-  ctx.textAlign   = 'left';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
 
 function drawGem(gem) {
-  const cx = gem.c * CELL + CELL/2;
-  const cy = gem.r * CELL + CELL/2;
+  const cx = gem.c * CELL + CELL / 2;
+  const cy = gem.r * CELL + CELL / 2;
   const bob = Math.sin(gem.anim) * 3;
   const scale = 0.9 + Math.sin(gem.anim * 1.3) * 0.1;
 
@@ -1546,16 +1626,16 @@ function drawGem(gem) {
   ctx.save();
   ctx.translate(cx, cy + bob);
   ctx.scale(scale, scale);
-  ctx.font        = `${CELL * 0.55}px sans-serif`;
-  ctx.textAlign   = 'center';
-  ctx.textBaseline= 'middle';
+  ctx.font = `${CELL * 0.55}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.fillText('💎', 0, 0);
   ctx.restore();
 }
 
 function drawBombPickup(p) {
-  const cx = p.c * CELL + CELL/2;
-  const cy = p.r * CELL + CELL/2;
+  const cx = p.c * CELL + CELL / 2;
+  const cy = p.r * CELL + CELL / 2;
   const bob = Math.sin(gemAnimPhase * 1.5 + p.c) * 3;
 
   ctx.font = `${CELL * 0.52}px sans-serif`;
@@ -1626,15 +1706,15 @@ function drawStartTile() {
   ctx.fillStyle = 'rgba(0,232,122,0.15)';
   ctx.fillRect(x, y, CELL, CELL);
   ctx.strokeStyle = 'rgba(0,232,122,0.5)';
-  ctx.lineWidth   = 2;
-  ctx.strokeRect(x+1, y+1, CELL-2, CELL-2);
-  ctx.font        = `${CELL*0.45}px sans-serif`;
-  ctx.textAlign   = 'center';
-  ctx.textBaseline= 'middle';
-  ctx.fillStyle   = '#00e87a';
-  ctx.fillText('S', x + CELL/2, y + CELL/2);
-  ctx.textAlign   = 'left';
-  ctx.textBaseline= 'alphabetic';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, CELL - 2, CELL - 2);
+  ctx.font = `${CELL * 0.45}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#00e87a';
+  ctx.fillText('S', x + CELL / 2, y + CELL / 2);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
 
 function drawExitTile() {
@@ -1645,24 +1725,24 @@ function drawExitTile() {
   ctx.fillRect(x, y, CELL, CELL);
   if (allDone) {
     ctx.strokeStyle = 'rgba(0,232,122,0.7)';
-    ctx.lineWidth   = 2.5;
-    ctx.strokeRect(x+1, y+1, CELL-2, CELL-2);
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(x + 1, y + 1, CELL - 2, CELL - 2);
   }
-  ctx.font        = `${CELL*0.55}px sans-serif`;
-  ctx.textAlign   = 'center';
-  ctx.textBaseline= 'middle';
+  ctx.font = `${CELL * 0.55}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.globalAlpha = allDone ? 1 : 0.4;
-  ctx.fillText('🚪', x + CELL/2, y + CELL/2);
+  ctx.fillText('🚪', x + CELL / 2, y + CELL / 2);
   ctx.globalAlpha = 1;
-  ctx.textAlign   = 'left';
-  ctx.textBaseline= 'alphabetic';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
 
 function drawDetectionBar() {
   const barW = canvas.width * 0.55;
   const barH = 6;
-  const bx   = (canvas.width - barW) / 2;
-  const by   = canvas.height - 16;
+  const bx = (canvas.width - barW) / 2;
+  const by = canvas.height - 16;
 
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(bx - 2, by - 2, barW + 4, barH + 4);
@@ -1671,10 +1751,10 @@ function drawDetectionBar() {
   ctx.fillStyle = col;
   ctx.fillRect(bx, by, barW * Math.min(1, detectionBar), barH);
 
-  ctx.font      = `bold ${CELL*0.28}px sans-serif`;
+  ctx.font = `bold ${CELL * 0.28}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  ctx.fillText('👁 DETECTION', canvas.width/2, by - 6);
+  ctx.fillText('👁 DETECTION', canvas.width / 2, by - 6);
   ctx.textAlign = 'left';
 }
 
@@ -1711,20 +1791,20 @@ function updateHUD() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function loadLevel(idx) {
-  levelIndex   = idx;
-  const lvl    = LEVELS[idx];
+  levelIndex = idx;
+  const lvl = LEVELS[idx];
 
   parseMap(lvl);
   initPlayer();
   initGuards(lvl);
-  particles    = [];
-  bombs        = [];
-  explosions   = [];
-  scorchMarks  = [];
+  particles = [];
+  bombs = [];
+  explosions = [];
+  scorchMarks = [];
   detectionBar = 0;
-  catchCooldown= 0;
-  stepTimer    = 0;
-  bombCount    = lvl.bombs || 3;
+  catchCooldown = 0;
+  stepTimer = 0;
+  bombCount = lvl.bombs || 3;
   bombRechargeTimer = 0;
   levelStartTime = performance.now();
 
@@ -1737,20 +1817,20 @@ function triggerLevelComplete() {
   gamePhase = 'levelcomplete';
 
   if (!completedLevels.includes(levelIndex)) completedLevels.push(levelIndex);
-  if (levelIndex + 1 < LEVELS.length && !unlockedLevels.includes(levelIndex+1)) {
+  if (levelIndex + 1 < LEVELS.length && !unlockedLevels.includes(levelIndex + 1)) {
     unlockedLevels.push(levelIndex + 1);
   }
   savePersist();
 
   const elapsed = ((performance.now() - levelStartTime) / 1000).toFixed(1);
-  document.getElementById('lc-name').textContent  = LEVELS[levelIndex].name;
-  document.getElementById('lc-stats').innerHTML   =
+  document.getElementById('lc-name').textContent = LEVELS[levelIndex].name;
+  document.getElementById('lc-stats').innerHTML =
     `Time: <strong>${elapsed}s</strong> &nbsp;|&nbsp; Lives remaining: <strong>${lives}</strong> &nbsp;|&nbsp; Bombs remaining: <strong>${bombCount}</strong>`;
 
   const nextBtn = document.getElementById('lc-next-btn');
   if (levelIndex + 1 < LEVELS.length) {
     nextBtn.style.display = 'block';
-    nextBtn.textContent   = `▶ NEXT: ${LEVELS[levelIndex+1].name}`;
+    nextBtn.textContent = `▶ NEXT: ${LEVELS[levelIndex + 1].name}`;
   } else {
     nextBtn.style.display = 'none';
   }
@@ -1788,7 +1868,7 @@ function gameLoop(ts) {
 //  SCREEN MANAGEMENT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const SCREENS = ['start','pause','caught','gameover','levelcomplete','victory'];
+const SCREENS = ['start', 'pause', 'caught', 'gameover', 'levelcomplete', 'victory'];
 
 function showScreen(name) {
   SCREENS.forEach(id => {
@@ -1809,10 +1889,10 @@ function showScreen(name) {
 function loadPersist() {
   try {
     const d = JSON.parse(localStorage.getItem('ghostguard_save') || '{}');
-    unlockedLevels  = d.unlocked  || [0];
+    unlockedLevels = d.unlocked || [0];
     completedLevels = d.completed || [];
-  } catch(e) {
-    unlockedLevels  = [0];
+  } catch (e) {
+    unlockedLevels = [0];
     completedLevels = [];
   }
 }
@@ -1820,20 +1900,20 @@ function loadPersist() {
 function savePersist() {
   try {
     localStorage.setItem('ghostguard_save', JSON.stringify({
-      unlocked:  unlockedLevels,
+      unlocked: unlockedLevels,
       completed: completedLevels,
     }));
-  } catch(e) {}
+  } catch (e) { }
 }
 
 function updateLevelSelectUI() {
   const btns = document.querySelectorAll('.level-btn');
   btns.forEach((btn, i) => {
-    btn.classList.remove('unlocked','locked','completed','active');
-    if (completedLevels.includes(i))  btn.classList.add('completed','unlocked');
+    btn.classList.remove('unlocked', 'locked', 'completed', 'active');
+    if (completedLevels.includes(i)) btn.classList.add('completed', 'unlocked');
     else if (unlockedLevels.includes(i)) btn.classList.add('unlocked');
-    else                               btn.classList.add('locked');
-    if (i === levelIndex)              btn.classList.add('active');
+    else btn.classList.add('locked');
+    if (i === levelIndex) btn.classList.add('active');
   });
 }
 
@@ -1867,7 +1947,7 @@ function setupInput() {
 
 document.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('game-canvas');
-  ctx    = canvas.getContext('2d');
+  ctx = canvas.getContext('2d');
 
   loadPersist();
   resizeCanvas();
@@ -1883,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('start-btn').onclick = () => {
     lives = MAX_LIVES;
-    sessionStats = { time:0, catches:0, gemsTotal:0, wallsBlown:0 };
+    sessionStats = { time: 0, catches: 0, gemsTotal: 0, wallsBlown: 0 };
     loadLevel(levelIndex);
     showScreen('playing');
     requestAnimationFrame(ts => { lastTime = ts; gameLoop(ts); });
@@ -1909,7 +1989,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('resume-btn').onclick = () => showScreen('playing');
-  document.getElementById('quit-btn').onclick   = () => {
+  document.getElementById('quit-btn').onclick = () => {
     showScreen('start');
     updateLevelSelectUI();
   };
@@ -1945,7 +2025,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('v-restart-btn').onclick = () => {
     levelIndex = 0; lives = MAX_LIVES;
-    sessionStats = {time:0,catches:0,gemsTotal:0,wallsBlown:0};
+    sessionStats = { time: 0, catches: 0, gemsTotal: 0, wallsBlown: 0 };
     loadLevel(0);
     showScreen('playing');
   };
