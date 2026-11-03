@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/ghost-guard/index.html" },
+    { "source": "/style.css", "destination": "/ghost-guard/style.css" },
+    { "source": "/engine.js", "destination": "/ghost-guard/engine.js" },
+    { "source": "/ghost-guard", "destination": "/ghost-guard/index.html" }
+  ]
+}
