@@ -34,9 +34,11 @@ Built entirely with **vanilla web technologies** (HTML5 Canvas, pure JavaScript 
 
 | Desktop Key | Mobile Touch Input | Action | Tactical Usage |
 | :--- | :--- | :--- | :--- |
-| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> | **Virtual Joystick** (Bottom-Left) | **Movement** | Smooth 360° or directional stealth movement. |
+| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> | **Dynamic Floating Joystick** (Bottom-Left) | **Movement** | Smooth 360° or directional stealth movement; centers anywhere your thumb presses. |
 | <kbd>SHIFT</kbd> *(Hold)* | **🥷 SNEAK Button** (Tap/Toggle) | **Sneak Mode** | Halves movement speed, silences footsteps, and slashes guard detection build-up rate by **45%**. |
-| <kbd>SPACE</kbd> or <kbd>B</kbd> | **💣 BOOM Button** (Bottom-Right) | **Plant Bomb** | Deploys a demolition charge on your current tile (1.8-second fuse). |
+| <kbd>SPACE</kbd> or <kbd>B</kbd> | **💣 BOOM Button** (Bottom-Right) | **Plant Bomb** | Large 74px tactile button to deploy demolition charges on your current tile. |
+| <kbd>Z</kbd> | **🔍 LARGE / FULL Button** (HUD) | **Camera Zoom** | Toggles between **Large Follow-Cam (60%+ bigger characters & tiles)** and **Full Map Overview**. |
+| <kbd>F</kbd> | **⛶ Fullscreen Button** (HUD) | **Fullscreen** | Expands canvas edge-to-edge on mobile, removing browser address bars. |
 | <kbd>ESC</kbd> | **⏸ Pause Button** (HUD) | **Pause / Resume** | Pauses gameplay and opens the tactical overlay. |
 | **Mouse Click** | **Direct Screen Tap** | **UI Navigation** | Select levels, adjust settings, and navigate menu buttons. |
 

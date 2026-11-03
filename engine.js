@@ -453,6 +453,8 @@ let bombRechargeTimer = 0; // Backup recharge so player never softlocks
 let keys = {};
 let touchInput = { active: false, dx: 0, dy: 0 };
 let touchSneakActive = false;
+let isZoomMode = false; // Toggle between Large Follow-Cam and Full Overview
+let camera = { x: 0, y: 0 };
 let gamePhase = 'menu';  // menu | playing | caught | levelcomplete | gameover | victory
 let catchCooldown = 0;
 let detectionBar = 0;
@@ -465,6 +467,12 @@ let levelStartTime = 0;
 
 let unlockedLevels = [0];
 let completedLevels = [];
+
+function haptic(pattern = 25) {
+  try {
+    if (navigator && navigator.vibrate) navigator.vibrate(pattern);
+  } catch (e) { }
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  AUDIO (Web Audio API – Procedural SFX)
@@ -549,16 +557,10 @@ function sfxBoom() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  CANVAS SETUP
+//  CANVAS SETUP & HIGH-DPI SCALING
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function resizeCanvas() {
-  const wrap = document.getElementById('canvas-wrap');
-  if (!wrap || !canvas) return;
-  const maxW = Math.max(100, wrap.clientWidth - 8);
-  const maxH = Math.max(100, wrap.clientHeight - 8);
-  const newCell = Math.max(12, Math.floor(Math.min(maxW / COLS, maxH / ROWS)));
-
+function scaleEntities(newCell) {
   if (CELL > 0 && newCell !== CELL) {
     const scale = newCell / CELL;
     if (player && player.x !== undefined) {
@@ -587,9 +589,67 @@ function resizeCanvas() {
       });
     }
   }
-  CELL = newCell;
-  canvas.width = CELL * COLS;
-  canvas.height = CELL * ROWS;
+}
+
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  if (!wrap || !canvas) return;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+
+  if (isZoomMode) {
+    // Large Zoom Camera Mode: Cell is 36px-48px for huge mobile visibility
+    const baseCell = Math.floor(Math.min(wrapW / COLS, wrapH / ROWS));
+    const newCell = Math.max(34, Math.min(52, Math.round(baseCell * 1.8)));
+    scaleEntities(newCell);
+    CELL = newCell;
+
+    canvas.width = Math.round(wrapW * dpr);
+    canvas.height = Math.round(wrapH * dpr);
+    canvas.style.width = wrapW + 'px';
+    canvas.style.height = wrapH + 'px';
+  } else {
+    // Full Map Overview: Fits all 22x16 tiles with maximum available space
+    const newCell = Math.max(14, Math.floor(Math.min((wrapW - 2) / COLS, (wrapH - 2) / ROWS)));
+    scaleEntities(newCell);
+    CELL = newCell;
+
+    const displayW = CELL * COLS;
+    const displayH = CELL * ROWS;
+    canvas.width = Math.round(displayW * dpr);
+    canvas.height = Math.round(displayH * dpr);
+    canvas.style.width = displayW + 'px';
+    canvas.style.height = displayH + 'px';
+  }
+}
+
+function toggleZoom() {
+  isZoomMode = !isZoomMode;
+  const btn = document.getElementById('hud-zoom-btn');
+  if (btn) {
+    btn.textContent = isZoomMode ? '🗺️ FULL' : '🔍 LARGE';
+    btn.classList.toggle('active', isZoomMode);
+  }
+  resizeCanvas();
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -792,33 +852,43 @@ function updatePlayer(dt) {
   player.trail.forEach(t => { t.alpha *= 0.82; });
   player.trail = player.trail.filter(t => t.alpha > 0.02);
 
-  // Gem collection
-  const pc = Math.floor(player.x / CELL);
-  const pr = Math.floor(player.y / CELL);
+  // Gem collection (generous proximity check for mobile friendly gameplay)
   for (const gem of gemList) {
-    if (!gem.collected && gem.c === pc && gem.r === pr) {
-      gem.collected = true;
-      globalGems++;
-      sessionStats.gemsTotal++;
-      sfxGem();
-      spawnGemParticles(gem.c * CELL + CELL / 2, gem.r * CELL + CELL / 2);
-      updateHUD();
+    if (!gem.collected) {
+      const gx = (gem.c + 0.5) * CELL;
+      const gy = (gem.r + 0.5) * CELL;
+      if (Math.hypot(player.x - gx, player.y - gy) < CELL * 0.75) {
+        gem.collected = true;
+        globalGems++;
+        sessionStats.gemsTotal++;
+        sfxGem();
+        haptic(15);
+        spawnGemParticles(gx, gy);
+        updateHUD();
+      }
     }
   }
 
   // Bomb Ammo pickup collection
   for (const p of bombPickups) {
-    if (!p.collected && p.c === pc && p.r === pr) {
-      p.collected = true;
-      bombCount += 2;
-      sfxPickup();
-      spawnSparkParticles(p.c * CELL + CELL / 2, p.r * CELL + CELL / 2, '#ff9800', 16);
-      updateHUD();
+    if (!p.collected) {
+      const px = (p.c + 0.5) * CELL;
+      const py = (p.r + 0.5) * CELL;
+      if (Math.hypot(player.x - px, player.y - py) < CELL * 0.75) {
+        p.collected = true;
+        bombCount += 2;
+        sfxPickup();
+        haptic(25);
+        spawnSparkParticles(px, py, '#ff9800', 16);
+        updateHUD();
+      }
     }
   }
 
   // Exit check
-  if (pc === exitCell.c && pr === exitCell.r) {
+  const exX = (exitCell.c + 0.5) * CELL;
+  const exY = (exitCell.r + 0.5) * CELL;
+  if (Math.hypot(player.x - exX, player.y - exY) < CELL * 0.75) {
     const allCollected = gemList.every(g => g.collected);
     if (allCollected) {
       triggerLevelComplete();
@@ -929,6 +999,7 @@ function updateBombs(dt) {
 
 function detonateBomb(b) {
   sfxBoom();
+  haptic(45);
 
   // Screen shake
   const wrap = document.getElementById('canvas-wrap');
@@ -1229,6 +1300,7 @@ function catchPlayer(reason = "Captured by guard!") {
   lives--;
   sessionStats.catches++;
   sfxCaught();
+  haptic([70, 40, 90]);
   spawnCaughtParticles(player.x, player.y);
 
   const wrap = document.getElementById('canvas-wrap');
@@ -1326,7 +1398,31 @@ function updateGems(dt) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function render(dt) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  const viewW = canvas.width / dpr;
+  const viewH = canvas.height / dpr;
+
+  ctx.clearRect(0, 0, viewW, viewH);
+
+  if (isZoomMode) {
+    // Camera smoothly follows operative
+    const targetX = player.x - viewW / 2;
+    const targetY = player.y - viewH / 2;
+    const maxCamX = Math.max(0, COLS * CELL - viewW);
+    const maxCamY = Math.max(0, ROWS * CELL - viewH);
+    camera.x += (Math.max(0, Math.min(maxCamX, targetX)) - camera.x) * 0.15;
+    camera.y += (Math.max(0, Math.min(maxCamY, targetY)) - camera.y) * 0.15;
+
+    ctx.save();
+    ctx.translate(-Math.round(camera.x), -Math.round(camera.y));
+  } else {
+    camera.x = 0;
+    camera.y = 0;
+    ctx.save();
+  }
 
   // ── Floor & Walls ──────────────────────────
   for (let r = 0; r < ROWS; r++) {
@@ -1446,15 +1542,55 @@ function render(dt) {
   });
   ctx.globalAlpha = 1;
 
-  // ── Detection Warning Bar ─────────────────
+  ctx.restore(); // Restore camera coordinate space
+
+  // ── UI Overlays in Screen Space ───────────
   if (detectionBar > 0.05 && gamePhase === 'playing') {
-    drawDetectionBar();
+    drawDetectionBar(viewW, viewH);
+  }
+
+  if (isZoomMode && gamePhase === 'playing') {
+    drawOffscreenIndicators(viewW, viewH);
   }
 
   // ── Pause Overlay ─────────────────────────
   if (gamePhase === 'paused') {
-    ctx.fillStyle = 'rgba(0,0,0,.6)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(0,0,0,.65)';
+    ctx.fillRect(0, 0, viewW, viewH);
+  }
+
+  ctx.restore(); // Restore DPR transform
+}
+
+function drawOffscreenIndicators(viewW, viewH) {
+  for (const g of guards) {
+    if (g.stunTimer > 0) continue;
+    const sx = g.x - camera.x;
+    const sy = g.y - camera.y;
+    const isOffscreen = (sx < 15 || sx > viewW - 15 || sy < 15 || sy > viewH - 15);
+
+    if (isOffscreen && (g.state === GS.ALERT || g.state === GS.SUSPICIOUS || g.detectionAccum > 0.1)) {
+      const margin = 24;
+      const cx = Math.max(margin, Math.min(viewW - margin, sx));
+      const cy = Math.max(margin, Math.min(viewH - margin, sy));
+
+      const angle = Math.atan2(sy - viewH / 2, sx - viewW / 2);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+
+      // Warning chevron pointing towards sentinel
+      ctx.fillStyle = g.state === GS.ALERT ? '#ff3355' : '#ff9800';
+      ctx.beginPath();
+      ctx.moveTo(9, 0);
+      ctx.lineTo(-7, -7);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-7, 7);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
   }
 }
 
@@ -1793,23 +1929,23 @@ function drawExitTile() {
   ctx.textBaseline = 'alphabetic';
 }
 
-function drawDetectionBar() {
-  const barW = canvas.width * 0.55;
-  const barH = 6;
-  const bx = (canvas.width - barW) / 2;
-  const by = canvas.height - 16;
+function drawDetectionBar(viewW = canvas.width, viewH = canvas.height) {
+  const barW = Math.min(260, viewW * 0.6);
+  const barH = 7;
+  const bx = (viewW - barW) / 2;
+  const by = viewH - 22;
 
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(bx - 2, by - 2, barW + 4, barH + 4);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(bx - 3, by - 3, barW + 6, barH + 6);
 
   const col = detectionBar < 0.5 ? '#fbbf24' : detectionBar < 0.85 ? '#ff9800' : '#ff3355';
   ctx.fillStyle = col;
   ctx.fillRect(bx, by, barW * Math.min(1, detectionBar), barH);
 
-  ctx.font = `bold ${CELL * 0.28}px sans-serif`;
+  ctx.font = `bold 10px sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  ctx.fillText('👁 DETECTION', canvas.width / 2, by - 6);
+  ctx.fillText('👁 DETECTION', viewW / 2, by - 6);
   ctx.textAlign = 'left';
 }
 
@@ -1987,27 +2123,74 @@ function updateLevelSelectUI() {
 //  TOUCH CONTROLS (MOBILE VIRTUAL CONTROLLER)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+function checkOrientationHint() {
+  const hint = document.getElementById('rotate-hint');
+  if (!hint) return;
+  const isPortraitPhone = (window.innerWidth < 650 && window.innerHeight > window.innerWidth);
+  if (isPortraitPhone && !sessionStorage.getItem('rotate_hint_closed')) {
+    hint.classList.remove('hidden');
+    setTimeout(() => {
+      hint.classList.add('hidden');
+    }, 5500);
+  } else {
+    hint.classList.add('hidden');
+  }
+}
+
 function setupTouchControls() {
+  const touchLeft = document.getElementById('touch-left');
   const joystickZone = document.getElementById('joystick-zone');
   const joystickBase = document.getElementById('joystick-base');
   const joystickKnob = document.getElementById('joystick-knob');
   const touchBombBtn = document.getElementById('touch-bomb-btn');
   const touchSneakBtn = document.getElementById('touch-sneak-btn');
   const hudPauseBtn = document.getElementById('hud-pause-btn');
+  const hudZoomBtn = document.getElementById('hud-zoom-btn');
+  const hudFullscreenBtn = document.getElementById('hud-fullscreen-btn');
+  const closeRotateHint = document.getElementById('close-rotate-hint');
 
   if (hudPauseBtn) {
     hudPauseBtn.onclick = () => {
       unlockAudio();
+      haptic(20);
       if (gamePhase === 'playing') showScreen('pause');
       else if (gamePhase === 'pause') showScreen('playing');
+    };
+  }
+
+  if (hudZoomBtn) {
+    hudZoomBtn.textContent = isZoomMode ? '🗺️ FULL' : '🔍 LARGE';
+    hudZoomBtn.classList.toggle('active', isZoomMode);
+    hudZoomBtn.onclick = () => {
+      unlockAudio();
+      haptic(20);
+      toggleZoom();
+    };
+  }
+
+  if (hudFullscreenBtn) {
+    hudFullscreenBtn.onclick = () => {
+      unlockAudio();
+      haptic(20);
+      toggleFullscreen();
+    };
+  }
+
+  if (closeRotateHint) {
+    closeRotateHint.onclick = () => {
+      document.getElementById('rotate-hint')?.classList.add('hidden');
+      sessionStorage.setItem('rotate_hint_closed', '1');
     };
   }
 
   if (!joystickZone || !joystickBase || !joystickKnob) return;
 
   let activeTouchId = null;
-  let baseRect = null;
-  const MAX_RADIUS = 42;
+  let originX = 0;
+  let originY = 0;
+  const MAX_RADIUS = 48;
+
+  const targetArea = touchLeft || joystickZone;
 
   function handleTouchStart(e) {
     unlockAudio();
@@ -2015,7 +2198,16 @@ function setupTouchControls() {
       const t = e.changedTouches[i];
       if (activeTouchId === null) {
         activeTouchId = t.identifier;
-        baseRect = joystickBase.getBoundingClientRect();
+        const rect = joystickZone.getBoundingClientRect();
+        originX = t.clientX;
+        originY = t.clientY;
+
+        const relX = t.clientX - rect.left;
+        const relY = t.clientY - rect.top;
+        joystickBase.style.left = `${relX}px`;
+        joystickBase.style.top = `${relY}px`;
+        joystickBase.classList.add('touch-active');
+
         updateJoystick(t.clientX, t.clientY);
         break;
       }
@@ -2040,19 +2232,18 @@ function setupTouchControls() {
         touchInput.active = false;
         touchInput.dx = 0;
         touchInput.dy = 0;
-        joystickKnob.style.transform = 'translate(0px, 0px)';
+        joystickKnob.style.transform = 'translate(-50%, -50%)';
+        joystickBase.classList.remove('touch-active');
+        joystickBase.style.left = '';
+        joystickBase.style.top = '';
         break;
       }
     }
   }
 
   function updateJoystick(clientX, clientY) {
-    if (!baseRect) baseRect = joystickBase.getBoundingClientRect();
-    const centerX = baseRect.left + baseRect.width / 2;
-    const centerY = baseRect.top + baseRect.height / 2;
-
-    let dx = clientX - centerX;
-    let dy = clientY - centerY;
+    let dx = clientX - originX;
+    let dy = clientY - originY;
     const dist = Math.hypot(dx, dy);
 
     if (dist > MAX_RADIUS) {
@@ -2060,10 +2251,9 @@ function setupTouchControls() {
       dy = (dy / dist) * MAX_RADIUS;
     }
 
-    joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+    joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-    // Deadzone
-    if (dist > 5) {
+    if (dist > 6) {
       touchInput.active = true;
       touchInput.dx = dx / MAX_RADIUS;
       touchInput.dy = dy / MAX_RADIUS;
@@ -2074,16 +2264,21 @@ function setupTouchControls() {
     }
   }
 
-  joystickZone.addEventListener('touchstart', handleTouchStart, { passive: false });
+  targetArea.addEventListener('touchstart', handleTouchStart, { passive: false });
   window.addEventListener('touchmove', handleTouchMove, { passive: false });
   window.addEventListener('touchend', handleTouchEnd, { passive: false });
   window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-  // Mouse fallback for testing joystick in devtools
+  // Mouse fallback for testing in devtools
   let mouseActive = false;
-  joystickZone.addEventListener('mousedown', e => {
+  targetArea.addEventListener('mousedown', e => {
     mouseActive = true;
-    baseRect = joystickBase.getBoundingClientRect();
+    originX = e.clientX;
+    originY = e.clientY;
+    const rect = joystickZone.getBoundingClientRect();
+    joystickBase.style.left = `${e.clientX - rect.left}px`;
+    joystickBase.style.top = `${e.clientY - rect.top}px`;
+    joystickBase.classList.add('touch-active');
     updateJoystick(e.clientX, e.clientY);
   });
   window.addEventListener('mousemove', e => {
@@ -2095,7 +2290,10 @@ function setupTouchControls() {
       touchInput.active = false;
       touchInput.dx = 0;
       touchInput.dy = 0;
-      joystickKnob.style.transform = 'translate(0px, 0px)';
+      joystickKnob.style.transform = 'translate(-50%, -50%)';
+      joystickBase.classList.remove('touch-active');
+      joystickBase.style.left = '';
+      joystickBase.style.top = '';
     }
   });
 
@@ -2104,6 +2302,7 @@ function setupTouchControls() {
     const handleBombPress = (e) => {
       e.preventDefault();
       unlockAudio();
+      haptic(35);
       placeBomb();
     };
     touchBombBtn.addEventListener('touchstart', handleBombPress, { passive: false });
@@ -2115,6 +2314,7 @@ function setupTouchControls() {
     const handleSneakToggle = (e) => {
       e.preventDefault();
       unlockAudio();
+      haptic(20);
       touchSneakActive = !touchSneakActive;
       updateHUD();
     };
@@ -2138,6 +2338,20 @@ function setupInput() {
       return;
     }
 
+    // Toggle Zoom mode on Z
+    if ((e.key === 'z' || e.key === 'Z') && (gamePhase === 'playing' || gamePhase === 'paused')) {
+      e.preventDefault();
+      toggleZoom();
+      return;
+    }
+
+    // Toggle Fullscreen on F
+    if ((e.key === 'f' || e.key === 'F') && (gamePhase === 'playing' || gamePhase === 'paused')) {
+      e.preventDefault();
+      toggleFullscreen();
+      return;
+    }
+
     if (e.key === 'Escape') {
       if (gamePhase === 'playing') { showScreen('pause'); }
       else if (gamePhase === 'pause') { showScreen('playing'); }
@@ -2156,17 +2370,33 @@ document.addEventListener('DOMContentLoaded', () => {
   ctx = canvas.getContext('2d');
 
   loadPersist();
+
+  // Enable Large Zoom mode automatically on small phone screens for comfortable large view
+  if (window.innerWidth < 650 && window.innerHeight > window.innerWidth) {
+    isZoomMode = true;
+  }
+  const zoomBtn = document.getElementById('hud-zoom-btn');
+  if (zoomBtn) {
+    zoomBtn.textContent = isZoomMode ? '🗺️ FULL' : '🔍 LARGE';
+    zoomBtn.classList.toggle('active', isZoomMode);
+  }
+
   resizeCanvas();
 
   window.addEventListener('resize', () => {
     resizeCanvas();
+    checkOrientationHint();
   });
   window.addEventListener('orientationchange', () => {
-    setTimeout(resizeCanvas, 100);
+    setTimeout(() => {
+      resizeCanvas();
+      checkOrientationHint();
+    }, 120);
   });
 
   setupInput();
   setupTouchControls();
+  checkOrientationHint();
   updateLevelSelectUI();
 
   // ── Button wiring ──────────────────────────
