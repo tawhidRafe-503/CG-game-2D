@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ghost Guard – Stealth Vision Cones & Demolition</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     START SCREEN
+══════════════════════════════════════════ -->
+<div id="start-screen" class="overlay active">
+  <div class="overlay-box">
+    <div class="game-logo">
+      <span class="logo-ghost">👻</span>
+      <div class="logo-text">
+        <span class="logo-title">GHOST GUARD</span>
+        <span class="logo-boom-badge">💥 DEMOLITION EDITION</span>
+      </div>
+    </div>
+    <p class="logo-sub">Stealth · Vision Cones · Tactical Booms · Infiltration</p>
+
+    <div class="how-section">
+      <h3>OBJECTIVE & TACTICS</h3>
+      <p>💎 Collect all <span class="c-gem">diamonds</span>, then escape through the <span class="c-exit">🚪 exit</span>.</p>
+      <p>💣 Plant <span class="c-boom">BOOM bombs</span> (<kbd>SPACE</kbd> or <kbd>B</kbd> or click 💣) to blast <span class="c-wall">🧱 cracked walls</span> to reach sealed diamonds!</p>
+      <p>👂 <strong>Guard Hearing:</strong> Guards rush to investigate loud explosions! Use booms to lure them away.</p>
+      <p>💫 <strong>Stun Guards:</strong> Caught in the epicenter? Guards are knocked dizzy for 4.5s. Don't blast yourself!</p>
+    </div>
+
+    <div class="controls-grid">
+      <div class="ctrl-row"><kbd>W A S D</kbd><span>Move</span></div>
+      <div class="ctrl-row"><kbd>SHIFT</kbd><span>Sneak (quieter &amp; harder to spot)</span></div>
+      <div class="ctrl-row"><kbd>SPACE</kbd> / <kbd>B</kbd><span>Plant Bomb (BOOM!)</span></div>
+      <div class="ctrl-row"><kbd>ESC</kbd><span>Pause</span></div>
+    </div>
+
+    <div class="legend-row">
+      <div class="leg"><span class="dot yellow-dot"></span> Patrol</div>
+      <div class="leg"><span class="dot orange-dot"></span> Investigating</div>
+      <div class="leg"><span class="dot red-dot"></span> Alert</div>
+      <div class="leg"><span class="leg-tile tile-cracked"></span> Cracked Wall</div>
+      <div class="leg"><span class="leg-tile tile-ammo">🧨</span> Ammo</div>
+    </div>
+
+    <div class="lives-display">❤️ You have <strong>3 lives</strong> across all levels</div>
+
+    <div class="level-select" id="level-select">
+      <p class="level-label">SELECT LEVEL (8 CHALLENGES)</p>
+      <div class="level-btns" id="level-btns">
+        <button class="level-btn unlocked" data-level="0" title="The Lobby">1</button>
+        <button class="level-btn locked"   data-level="1" title="The Gallery">2</button>
+        <button class="level-btn locked"   data-level="2" title="The Archive">3</button>
+        <button class="level-btn locked"   data-level="3" title="The Server Room">4</button>
+        <button class="level-btn locked"   data-level="4" title="The Vault">5</button>
+        <button class="level-btn locked hard-tag" data-level="5" title="The Quarantine (Hard)">6</button>
+        <button class="level-btn locked hard-tag" data-level="6" title="The Citadel (Very Hard)">7</button>
+        <button class="level-btn locked master-tag" data-level="7" title="Obsidian Core (Master)">8</button>
+      </div>
+    </div>
+
+    <button id="start-btn" class="btn-primary">▶ PLAY LEVEL 1</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAUSE SCREEN
+══════════════════════════════════════════ -->
+<div id="pause-screen" class="overlay">
+  <div class="overlay-box small">
+    <h1 class="overlay-title">⏸ PAUSED</h1>
+    <div class="pause-hints">
+      <p>💡 <kbd>SPACE</kbd> or <kbd>B</kbd> plants a bomb.</p>
+      <p>💥 Bombs destroy <span class="c-wall">🧱 cracked walls</span> and stun guards.</p>
+      <p>🥷 Hold <kbd>SHIFT</kbd> to sneak in narrow sectors.</p>
+    </div>
+    <button id="resume-btn" class="btn-primary">▶ RESUME</button>
+    <button id="quit-btn"   class="btn-secondary">⏹ QUIT TO MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CAUGHT / DAMAGE SCREEN
+══════════════════════════════════════════ -->
+<div id="caught-screen" class="overlay">
+  <div class="overlay-box small">
+    <h1 id="caught-title" class="overlay-title danger">🚨 CAUGHT!</h1>
+    <p id="caught-lives-left" class="overlay-sub"></p>
+    <p id="caught-hint" class="overlay-sub-hint"></p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     GAME OVER SCREEN
+══════════════════════════════════════════ -->
+<div id="gameover-screen" class="overlay">
+  <div class="overlay-box">
+    <h1 class="overlay-title danger">💀 MISSION FAILED</h1>
+    <p id="go-detail" class="overlay-sub"></p>
+    <button id="go-restart-btn"  class="btn-primary">↺ TRY AGAIN</button>
+    <button id="go-menu-btn"     class="btn-secondary">⏹ MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LEVEL COMPLETE SCREEN
+══════════════════════════════════════════ -->
+<div id="levelcomplete-screen" class="overlay">
+  <div class="overlay-box">
+    <h1 class="overlay-title success">✅ LEVEL CLEAR!</h1>
+    <p id="lc-name"  class="overlay-sub level-name-big"></p>
+    <p id="lc-stats" class="overlay-sub"></p>
+    <button id="lc-next-btn" class="btn-primary">▶ NEXT LEVEL</button>
+    <button id="lc-menu-btn" class="btn-secondary">⏹ MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     VICTORY SCREEN
+══════════════════════════════════════════ -->
+<div id="victory-screen" class="overlay">
+  <div class="overlay-box">
+    <div class="victory-emoji">🏆</div>
+    <h1 class="overlay-title gold">MASTER GHOST INFILTRATOR!</h1>
+    <p class="overlay-sub">You conquered all 8 high-security sectors with tactical stealth and demolitions!</p>
+    <p id="v-stats" class="overlay-sub"></p>
+    <button id="v-restart-btn" class="btn-primary">▶ PLAY AGAIN</button>
+    <button id="v-menu-btn"    class="btn-secondary">⏹ MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     GAME ROOT
+══════════════════════════════════════════ -->
+<div id="game-root">
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-left">
+      <span id="hud-level-name" class="hud-level">Level 1 – The Lobby</span>
+    </div>
+    <div class="hud-center">
+      <span id="hud-gems"  class="hud-stat" title="Diamonds collected">💎 0 / 0</span>
+      <span class="hud-div">|</span>
+      <span id="hud-bombs" class="hud-stat hud-bombs" title="Bombs available (Press SPACE or B)">💣 3</span>
+      <span class="hud-div">|</span>
+      <span id="hud-lives" class="hud-stat hud-lives" title="Lives remaining">❤️ ❤️ ❤️</span>
+    </div>
+    <div class="hud-right">
+      <button id="hud-boom-btn" class="hud-boom-btn" title="Click or press SPACE/B to plant a BOOM bomb">💣 BOOM</button>
+      <span id="hud-sneak" class="hud-sneak hidden">🥷 SNEAK</span>
+      <span id="hud-alert" class="hud-alert-tag hidden">🚨 ALERT</span>
+    </div>
+  </div>
+
+  <!-- CANVAS WRAP -->
+  <div id="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+  </div>
+
+</div>
+
+<script src="engine.js"></script>
+</body>
+</html>
