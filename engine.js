@@ -451,6 +451,8 @@ let bombCount = 3;
 let bombRechargeTimer = 0; // Backup recharge so player never softlocks
 
 let keys = {};
+let touchInput = { active: false, dx: 0, dy: 0 };
+let touchSneakActive = false;
 let gamePhase = 'menu';  // menu | playing | caught | levelcomplete | gameover | victory
 let catchCooldown = 0;
 let detectionBar = 0;
@@ -474,6 +476,16 @@ function getAudio() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
+
+function unlockAudio() {
+  try {
+    const ac = getAudio();
+    if (ac && ac.state === 'suspended') ac.resume();
+  } catch (e) { }
+}
+['touchstart', 'touchend', 'click', 'keydown'].forEach(ev => {
+  document.addEventListener(ev, unlockAudio, { passive: true, once: false });
+});
 
 function playTone(freq, type, dur, vol = 0.3, delay = 0) {
   try {
@@ -542,9 +554,40 @@ function sfxBoom() {
 
 function resizeCanvas() {
   const wrap = document.getElementById('canvas-wrap');
-  const maxW = wrap.clientWidth - 4;
-  const maxH = wrap.clientHeight - 4;
-  CELL = Math.floor(Math.min(maxW / COLS, maxH / ROWS));
+  if (!wrap || !canvas) return;
+  const maxW = Math.max(100, wrap.clientWidth - 8);
+  const maxH = Math.max(100, wrap.clientHeight - 8);
+  const newCell = Math.max(12, Math.floor(Math.min(maxW / COLS, maxH / ROWS)));
+
+  if (CELL > 0 && newCell !== CELL) {
+    const scale = newCell / CELL;
+    if (player && player.x !== undefined) {
+      player.x *= scale;
+      player.y *= scale;
+      player.radius = newCell * PLAYER_RADIUS;
+    }
+    if (guards && guards.length > 0) {
+      guards.forEach(g => {
+        g.x *= scale;
+        g.y *= scale;
+        if (g.lastKnownX) g.lastKnownX *= scale;
+        if (g.lastKnownY) g.lastKnownY *= scale;
+      });
+    }
+    if (bombs && bombs.length > 0) {
+      bombs.forEach(b => {
+        b.x = (b.c + 0.5) * newCell;
+        b.y = (b.r + 0.5) * newCell;
+      });
+    }
+    if (scorchMarks && scorchMarks.length > 0) {
+      scorchMarks.forEach(s => {
+        s.x *= scale;
+        s.y *= scale;
+      });
+    }
+  }
+  CELL = newCell;
   canvas.width = CELL * COLS;
   canvas.height = CELL * ROWS;
 }
@@ -706,10 +749,22 @@ function updatePlayer(dt) {
   if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= 1;
   if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += 1;
 
-  if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+  if (touchInput.active) {
+    dx += touchInput.dx;
+    dy += touchInput.dy;
+  }
 
-  player.moving = (dx !== 0 || dy !== 0);
-  player.sneaking = player.moving && (keys['Shift'] || keys['ShiftLeft'] || keys['ShiftRight']);
+  const len = Math.hypot(dx, dy);
+  if (len > 1) {
+    dx /= len;
+    dy /= len;
+  } else if (dx !== 0 && dy !== 0 && !touchInput.active) {
+    dx *= 0.7071;
+    dy *= 0.7071;
+  }
+
+  player.moving = (Math.abs(dx) > 0.08 || Math.abs(dy) > 0.08);
+  player.sneaking = player.moving && (keys['Shift'] || keys['ShiftLeft'] || keys['ShiftRight'] || touchSneakActive);
 
   if (player.moving) {
     player.angle = Math.atan2(dy, dx);
@@ -1780,6 +1835,17 @@ function updateHUD() {
     boomBtn.disabled = (bombCount <= 0);
   }
 
+  const touchBombBtn = document.getElementById('touch-bomb-btn');
+  if (touchBombBtn) {
+    touchBombBtn.disabled = (bombCount <= 0);
+    touchBombBtn.classList.toggle('empty', bombCount <= 0);
+  }
+
+  const touchSneakBtn = document.getElementById('touch-sneak-btn');
+  if (touchSneakBtn) {
+    touchSneakBtn.classList.toggle('active', touchSneakActive);
+  }
+
   const hearts = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, MAX_LIVES - lives));
   document.getElementById('hud-lives').textContent = hearts;
 
@@ -1918,6 +1984,146 @@ function updateLevelSelectUI() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  TOUCH CONTROLS (MOBILE VIRTUAL CONTROLLER)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function setupTouchControls() {
+  const joystickZone = document.getElementById('joystick-zone');
+  const joystickBase = document.getElementById('joystick-base');
+  const joystickKnob = document.getElementById('joystick-knob');
+  const touchBombBtn = document.getElementById('touch-bomb-btn');
+  const touchSneakBtn = document.getElementById('touch-sneak-btn');
+  const hudPauseBtn = document.getElementById('hud-pause-btn');
+
+  if (hudPauseBtn) {
+    hudPauseBtn.onclick = () => {
+      unlockAudio();
+      if (gamePhase === 'playing') showScreen('pause');
+      else if (gamePhase === 'pause') showScreen('playing');
+    };
+  }
+
+  if (!joystickZone || !joystickBase || !joystickKnob) return;
+
+  let activeTouchId = null;
+  let baseRect = null;
+  const MAX_RADIUS = 42;
+
+  function handleTouchStart(e) {
+    unlockAudio();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (activeTouchId === null) {
+        activeTouchId = t.identifier;
+        baseRect = joystickBase.getBoundingClientRect();
+        updateJoystick(t.clientX, t.clientY);
+        break;
+      }
+    }
+  }
+
+  function handleTouchMove(e) {
+    if (activeTouchId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === activeTouchId) {
+        updateJoystick(t.clientX, t.clientY);
+        break;
+      }
+    }
+  }
+
+  function handleTouchEnd(e) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === activeTouchId) {
+        activeTouchId = null;
+        touchInput.active = false;
+        touchInput.dx = 0;
+        touchInput.dy = 0;
+        joystickKnob.style.transform = 'translate(0px, 0px)';
+        break;
+      }
+    }
+  }
+
+  function updateJoystick(clientX, clientY) {
+    if (!baseRect) baseRect = joystickBase.getBoundingClientRect();
+    const centerX = baseRect.left + baseRect.width / 2;
+    const centerY = baseRect.top + baseRect.height / 2;
+
+    let dx = clientX - centerX;
+    let dy = clientY - centerY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > MAX_RADIUS) {
+      dx = (dx / dist) * MAX_RADIUS;
+      dy = (dy / dist) * MAX_RADIUS;
+    }
+
+    joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+    // Deadzone
+    if (dist > 5) {
+      touchInput.active = true;
+      touchInput.dx = dx / MAX_RADIUS;
+      touchInput.dy = dy / MAX_RADIUS;
+    } else {
+      touchInput.active = false;
+      touchInput.dx = 0;
+      touchInput.dy = 0;
+    }
+  }
+
+  joystickZone.addEventListener('touchstart', handleTouchStart, { passive: false });
+  window.addEventListener('touchmove', handleTouchMove, { passive: false });
+  window.addEventListener('touchend', handleTouchEnd, { passive: false });
+  window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+  // Mouse fallback for testing joystick in devtools
+  let mouseActive = false;
+  joystickZone.addEventListener('mousedown', e => {
+    mouseActive = true;
+    baseRect = joystickBase.getBoundingClientRect();
+    updateJoystick(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', e => {
+    if (mouseActive) updateJoystick(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', () => {
+    if (mouseActive) {
+      mouseActive = false;
+      touchInput.active = false;
+      touchInput.dx = 0;
+      touchInput.dy = 0;
+      joystickKnob.style.transform = 'translate(0px, 0px)';
+    }
+  });
+
+  // Touch Bomb button
+  if (touchBombBtn) {
+    const handleBombPress = (e) => {
+      e.preventDefault();
+      unlockAudio();
+      placeBomb();
+    };
+    touchBombBtn.addEventListener('touchstart', handleBombPress, { passive: false });
+    touchBombBtn.addEventListener('click', handleBombPress);
+  }
+
+  // Touch Sneak button
+  if (touchSneakBtn) {
+    const handleSneakToggle = (e) => {
+      e.preventDefault();
+      unlockAudio();
+      touchSneakActive = !touchSneakActive;
+      updateHUD();
+    };
+    touchSneakBtn.addEventListener('touchstart', handleSneakToggle, { passive: false });
+    touchSneakBtn.addEventListener('click', handleSneakToggle);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  INPUT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1955,8 +2161,12 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     resizeCanvas();
   });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(resizeCanvas, 100);
+  });
 
   setupInput();
+  setupTouchControls();
   updateLevelSelectUI();
 
   // ── Button wiring ──────────────────────────

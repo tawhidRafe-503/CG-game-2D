@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="theme-color" content="#04060f"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>Ghost Guard – Stealth Vision Cones & Demolition</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -25,16 +28,16 @@
     <div class="how-section">
       <h3>OBJECTIVE & TACTICS</h3>
       <p>💎 Collect all <span class="c-gem">diamonds</span>, then escape through the <span class="c-exit">🚪 exit</span>.</p>
-      <p>💣 Plant <span class="c-boom">BOOM bombs</span> (<kbd>SPACE</kbd> or <kbd>B</kbd> or click 💣) to blast <span class="c-wall">🧱 cracked walls</span> to reach sealed diamonds!</p>
+      <p>💣 Plant <span class="c-boom">BOOM bombs</span> (<kbd>SPACE</kbd> / <kbd>B</kbd> or tap 💣) to blast <span class="c-wall">🧱 cracked walls</span> to reach sealed diamonds!</p>
       <p>👂 <strong>Guard Hearing:</strong> Guards rush to investigate loud explosions! Use booms to lure them away.</p>
       <p>💫 <strong>Stun Guards:</strong> Caught in the epicenter? Guards are knocked dizzy for 4.5s. Don't blast yourself!</p>
     </div>
 
     <div class="controls-grid">
-      <div class="ctrl-row"><kbd>W A S D</kbd><span>Move</span></div>
-      <div class="ctrl-row"><kbd>SHIFT</kbd><span>Sneak (quieter &amp; harder to spot)</span></div>
-      <div class="ctrl-row"><kbd>SPACE</kbd> / <kbd>B</kbd><span>Plant Bomb (BOOM!)</span></div>
-      <div class="ctrl-row"><kbd>ESC</kbd><span>Pause</span></div>
+      <div class="ctrl-row"><kbd>W A S D</kbd> / <span class="ctrl-touch-label">🕹️ Joystick</span><span>Move Operative</span></div>
+      <div class="ctrl-row"><kbd>SHIFT</kbd> / <span class="ctrl-touch-label">🥷 Sneak</span><span>Sneak (quieter &amp; harder to spot)</span></div>
+      <div class="ctrl-row"><kbd>SPACE</kbd> / <span class="ctrl-touch-label">💣 Boom</span><span>Plant Bomb (BOOM!)</span></div>
+      <div class="ctrl-row"><kbd>ESC</kbd> / <span class="ctrl-touch-label">⏸ Pause</span><span>Tactical Pause</span></div>
     </div>
 
     <div class="legend-row">
@@ -72,9 +75,9 @@
   <div class="overlay-box small">
     <h1 class="overlay-title">⏸ PAUSED</h1>
     <div class="pause-hints">
-      <p>💡 <kbd>SPACE</kbd> or <kbd>B</kbd> plants a bomb.</p>
+      <p>💡 <kbd>SPACE</kbd> or <kbd>B</kbd> or tap 💣 plants a bomb.</p>
       <p>💥 Bombs destroy <span class="c-wall">🧱 cracked walls</span> and stun guards.</p>
-      <p>🥷 Hold <kbd>SHIFT</kbd> to sneak in narrow sectors.</p>
+      <p>🥷 Toggle or hold <kbd>SHIFT</kbd> / 🥷 to sneak in narrow sectors.</p>
     </div>
     <button id="resume-btn" class="btn-primary">▶ RESUME</button>
     <button id="quit-btn"   class="btn-secondary">⏹ QUIT TO MENU</button>
@@ -144,7 +147,7 @@
     <div class="hud-center">
       <span id="hud-gems"  class="hud-stat" title="Diamonds collected">💎 0 / 0</span>
       <span class="hud-div">|</span>
-      <span id="hud-bombs" class="hud-stat hud-bombs" title="Bombs available (Press SPACE or B)">💣 3</span>
+      <span id="hud-bombs" class="hud-stat hud-bombs" title="Bombs available (Press SPACE or B or tap 💣)">💣 3</span>
       <span class="hud-div">|</span>
       <span id="hud-lives" class="hud-stat hud-lives" title="Lives remaining">❤️ ❤️ ❤️</span>
     </div>
@@ -152,12 +155,40 @@
       <button id="hud-boom-btn" class="hud-boom-btn" title="Click or press SPACE/B to plant a BOOM bomb">💣 BOOM</button>
       <span id="hud-sneak" class="hud-sneak hidden">🥷 SNEAK</span>
       <span id="hud-alert" class="hud-alert-tag hidden">🚨 ALERT</span>
+      <button id="hud-pause-btn" class="hud-icon-btn" title="Pause Game">⏸</button>
     </div>
   </div>
 
   <!-- CANVAS WRAP -->
   <div id="canvas-wrap">
     <canvas id="game-canvas"></canvas>
+  </div>
+
+  <!-- MOBILE / TOUCH CONTROLS -->
+  <div id="touch-controls">
+    <div id="touch-left">
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <span class="joy-arrow joy-up">▲</span>
+          <span class="joy-arrow joy-right">▶</span>
+          <span class="joy-arrow joy-down">▼</span>
+          <span class="joy-arrow joy-left">◀</span>
+          <div id="joystick-knob">
+            <span class="joy-knob-icon">👻</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="touch-right">
+      <button id="touch-sneak-btn" class="touch-btn touch-sneak-btn" title="Toggle Sneak Mode">
+        <span class="touch-btn-icon">🥷</span>
+        <span class="touch-btn-label">SNEAK</span>
+      </button>
+      <button id="touch-bomb-btn" class="touch-btn touch-bomb-btn" title="Plant Demolition Bomb">
+        <span class="touch-btn-icon">💣</span>
+        <span class="touch-btn-label">BOOM</span>
+      </button>
+    </div>
   </div>
 
 </div>
