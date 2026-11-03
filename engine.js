@@ -696,8 +696,8 @@ function isShadow(c, r) {
 //  RAYCASTING VISION CONE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const RAY_STEP = 0.18;  // fraction of CELL per step
-const NUM_RAYS = 72;
+const RAY_STEP = 0.08;  // fine fraction of CELL per step for sharp wall stopping
+const NUM_RAYS = 84;
 
 function castRay(ox, oy, angle, maxDist) {
   const step = CELL * RAY_STEP;
@@ -712,7 +712,7 @@ function castRay(ox, oy, angle, maxDist) {
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return { x, y };
     // Ray blocks on unbreakable wall OR cracked breakable wall!
     if (tiles[row][col] === TILE.WALL || tiles[row][col] === TILE.BREAKABLE) {
-      return { x: x - dx * 0.5, y: y - dy * 0.5 };
+      return { x: x - dx * 0.9, y: y - dy * 0.9 };
     }
   }
   return { x, y };
@@ -765,7 +765,8 @@ function guardCanSeePlayer(guard) {
 
   const sneakMod = player.sneaking ? 0.55 : 1.0;
 
-  const steps = Math.max(8, Math.ceil(dist / (CELL * 0.3)));
+  // Ultra-fine line-of-sight raycheck so walls 100% block vision
+  const steps = Math.max(16, Math.ceil(dist / (CELL * 0.12)));
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
     const rx = guard.x + dx * t;
@@ -897,11 +898,16 @@ function updatePlayer(dt) {
 }
 
 function collidesWithWalls(cx, cy, r) {
+  const rDiag = r * 0.7071;
   const checks = [
-    { x: cx - r, y: cy - r },
-    { x: cx + r, y: cy - r },
-    { x: cx - r, y: cy + r },
-    { x: cx + r, y: cy + r },
+    { x: cx, y: cy - r },             // North
+    { x: cx, y: cy + r },             // South
+    { x: cx - r, y: cy },             // West
+    { x: cx + r, y: cy },             // East
+    { x: cx - rDiag, y: cy - rDiag }, // North-West
+    { x: cx + rDiag, y: cy - rDiag }, // North-East
+    { x: cx - rDiag, y: cy + rDiag }, // South-West
+    { x: cx + rDiag, y: cy + rDiag }, // South-East
   ];
   for (const pt of checks) {
     const col = Math.floor(pt.x / CELL);
@@ -1077,12 +1083,13 @@ function detonateBomb(b) {
       for (let s = 0; s < 10; s++) {
         spawnParticle(g.x, g.y, '#facc15', (Math.random() - 0.5) * 3, -Math.random() * 3 - 1, 0.8, 3);
       }
-    } else if (dist < CELL * 16 && g.stunTimer <= 0) {
-      // Guard hears explosion & rushes to investigate the BOOM!
+    } else if (dist < CELL * 8.5 && g.stunTimer <= 0) {
+      // Guard hears explosion & rushes to investigate the BOOM if nearby
       g.lastKnownX = b.x;
       g.lastKnownY = b.y;
       g.state = GS.ALERT;
-      g.stateTimer = 5.0;
+      g.stateTimer = 3.5;
+      g.wallStuckTimer = 0;
       g.alertFlash = 1;
     }
   }
@@ -1121,6 +1128,8 @@ function initGuards(lvl) {
     searchOscPhase: 0,
     alertFlash: 0,
     stunTimer: 0,
+    wallStuckTimer: 0,
+    patrolStuckTimer: 0,
     cone: [],
   }));
 }
@@ -1132,6 +1141,8 @@ function resetGuardsToPatrol() {
     g.detectionAccum = 0;
     g.alertFlash = 0;
     g.stunTimer = 0;
+    g.wallStuckTimer = 0;
+    g.patrolStuckTimer = 0;
   });
 }
 
@@ -1190,6 +1201,7 @@ function updateGuards(dt) {
         if (g.stateTimer <= 0) {
           g.state = GS.PATROL;
           g.detectionAccum = 0;
+          g.wallStuckTimer = 0;
         }
         break;
       }
@@ -1202,19 +1214,42 @@ function updateGuards(dt) {
         const tdx = tlx - g.x, tdy = tly - g.y;
         const td = Math.hypot(tdx, tdy);
 
+        let moved = false;
         if (td > CELL * 0.4) {
           const spd = g.speed * CELL * 0.018 * 1.6 * dt * 60;
           const nx = g.x + (tdx / td) * spd;
           const ny = g.y + (tdy / td) * spd;
+          const prevX = g.x, prevY = g.y;
           if (!collidesWithWalls(nx, g.y, CELL * 0.35)) g.x = nx;
           if (!collidesWithWalls(g.x, ny, CELL * 0.35)) g.y = ny;
+          if (Math.hypot(g.x - prevX, g.y - prevY) > spd * 0.15) {
+            moved = true;
+          }
           g.moveAngle = Math.atan2(tdy, tdx);
+        } else {
+          // Reached target investigation point! Stop and search
+          enterSearching(g);
+          break;
         }
 
         if (detStrength > 0) {
           g.lastKnownX = player.x;
           g.lastKnownY = player.y;
           g.stateTimer = 3.5;
+          g.wallStuckTimer = 0;
+        } else {
+          // Check if stopped by wall while pursuing
+          if (!moved) {
+            g.wallStuckTimer = (g.wallStuckTimer || 0) + dt;
+            if (g.wallStuckTimer > 0.8) {
+              // Stopped by wall! Cease charging and begin searching
+              g.wallStuckTimer = 0;
+              enterSearching(g);
+              break;
+            }
+          } else {
+            g.wallStuckTimer = Math.max(0, (g.wallStuckTimer || 0) - dt * 2);
+          }
         }
 
         const targetLookAngle = Math.atan2(tly - g.y, tlx - g.x);
@@ -1232,14 +1267,20 @@ function updateGuards(dt) {
 
       case GS.SEARCHING: {
         g.stateTimer -= dt;
-        g.searchOscPhase += dt * 1.8;
+        g.searchOscPhase += dt * 2.2;
         g.lookAngle += Math.sin(g.searchOscPhase) * dt * 2.5;
 
-        if (detStrength > 0.3) enterAlert(g);
+        if (detStrength > 0.3) {
+          enterAlert(g);
+          break;
+        }
 
         if (g.stateTimer <= 0) {
           g.state = GS.PATROL;
           g.detectionAccum = 0;
+          g.patrolIdx = getClosestPatrolIdx(g);
+          g.patrolStuckTimer = 0;
+          g.wallStuckTimer = 0;
         }
         break;
       }
@@ -1252,6 +1293,23 @@ function updateGuards(dt) {
   detectionBar = Math.max(0, ...guards.map(g => g.stunTimer > 0 ? 0 : g.detectionAccum / DETECTION_HOLD));
 }
 
+function getClosestPatrolIdx(g) {
+  if (!g.patrol || g.patrol.length === 0) return 0;
+  let bestIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < g.patrol.length; i++) {
+    const wp = g.patrol[i];
+    const wx = (wp.c + 0.5) * CELL;
+    const wy = (wp.r + 0.5) * CELL;
+    const d = Math.hypot(wx - g.x, wy - g.y);
+    if (d < bestDist) {
+      bestDist = d;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
 function movePatrol(g, dt) {
   if (!g.patrol || g.patrol.length < 2) return;
   const wp = g.patrol[g.patrolIdx % g.patrol.length];
@@ -1261,8 +1319,9 @@ function movePatrol(g, dt) {
   const dy = ty - g.y;
   const dist = Math.hypot(dx, dy);
 
-  if (dist < CELL * 0.15) {
+  if (dist < CELL * 0.18) {
     g.patrolIdx = (g.patrolIdx + 1) % g.patrol.length;
+    g.patrolStuckTimer = 0;
     return;
   }
 
@@ -1271,14 +1330,30 @@ function movePatrol(g, dt) {
   const ny = g.y + (dy / dist) * spd;
   g.moveAngle = Math.atan2(dy, dx);
 
+  const prevX = g.x;
+  const prevY = g.y;
   if (!collidesWithWalls(nx, g.y, CELL * 0.35)) g.x = nx;
   if (!collidesWithWalls(g.x, ny, CELL * 0.35)) g.y = ny;
+
+  // Unstick logic if blocked by wall on path to waypoint
+  const movedDist = Math.hypot(g.x - prevX, g.y - prevY);
+  if (movedDist < spd * 0.15) {
+    g.patrolStuckTimer = (g.patrolStuckTimer || 0) + dt;
+    if (g.patrolStuckTimer > 0.8) {
+      // Advance to next waypoint to unstick
+      g.patrolIdx = (g.patrolIdx + 1) % g.patrol.length;
+      g.patrolStuckTimer = 0;
+    }
+  } else {
+    g.patrolStuckTimer = Math.max(0, (g.patrolStuckTimer || 0) - dt * 2);
+  }
 }
 
 function enterAlert(g) {
   if (g.state !== GS.ALERT) sfxAlert();
   g.state = GS.ALERT;
-  g.stateTimer = 5.0;
+  g.stateTimer = 4.0;
+  g.wallStuckTimer = 0;
   g.lastKnownX = player.x;
   g.lastKnownY = player.y;
   g.detectionAccum = 1;
@@ -1286,8 +1361,9 @@ function enterAlert(g) {
 
 function enterSearching(g) {
   g.state = GS.SEARCHING;
-  g.stateTimer = 4.0;
+  g.stateTimer = 2.2;
   g.searchOscPhase = 0;
+  g.wallStuckTimer = 0;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1424,7 +1500,47 @@ function render(dt) {
     ctx.save();
   }
 
-  // ── Floor & Walls ──────────────────────────
+  // ── Step 1: Floor & Floor Decals (Underneath Vision Cones) ─
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const tile = tiles[r][c];
+      const x = c * CELL, y = r * CELL;
+
+      if (tile === TILE.SHADOW) {
+        // Shadow hiding zone
+        ctx.fillStyle = '#060a14';
+        ctx.fillRect(x, y, CELL, CELL);
+        ctx.fillStyle = 'rgba(0,0,30,.4)';
+        ctx.fillRect(x, y, CELL, CELL);
+      } else if (tile !== TILE.WALL && tile !== TILE.BREAKABLE) {
+        // Standard floor
+        ctx.fillStyle = '#111927';
+        ctx.fillRect(x, y, CELL, CELL);
+        ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x + 0.25, y + 0.25, CELL - 0.5, CELL - 0.5);
+      }
+    }
+  }
+
+  // ── Scorch Marks ──────────────────────────
+  for (const sm of scorchMarks) {
+    ctx.fillStyle = `rgba(5, 5, 12, ${sm.alpha * 0.75})`;
+    ctx.beginPath();
+    ctx.arc(sm.x, sm.y, CELL * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Start & Exit ──────────────────────────
+  drawStartTile();
+  drawExitTile();
+
+  // ── Step 2: Vision Cones (Drawn on Floor, Blocked by Walls) ──
+  ctx.save();
+  guards.forEach(g => renderVisionCone(g));
+  ctx.restore();
+
+  // ── Step 3: Walls (Drawn OVER Vision Cones so light never bleeds) ──
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const tile = tiles[r][c];
@@ -1471,39 +1587,9 @@ function render(dt) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('🧱', x + CELL / 2, y + CELL / 2);
-      } else if (tile === TILE.SHADOW) {
-        // Shadow hiding zone
-        ctx.fillStyle = '#060a14';
-        ctx.fillRect(x, y, CELL, CELL);
-        ctx.fillStyle = 'rgba(0,0,30,.4)';
-        ctx.fillRect(x, y, CELL, CELL);
-      } else {
-        // Standard floor
-        ctx.fillStyle = '#111927';
-        ctx.fillRect(x, y, CELL, CELL);
-        ctx.strokeStyle = 'rgba(255,255,255,0.025)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x + 0.25, y + 0.25, CELL - 0.5, CELL - 0.5);
       }
     }
   }
-
-  // ── Scorch Marks ──────────────────────────
-  for (const sm of scorchMarks) {
-    ctx.fillStyle = `rgba(5, 5, 12, ${sm.alpha * 0.75})`;
-    ctx.beginPath();
-    ctx.arc(sm.x, sm.y, CELL * 0.42, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // ── Start & Exit ──────────────────────────
-  drawStartTile();
-  drawExitTile();
-
-  // ── Vision Cones ──────────────────────────
-  ctx.save();
-  guards.forEach(g => renderVisionCone(g));
-  ctx.restore();
 
   // ── Gems / Diamonds ───────────────────────
   gemList.forEach(g => { if (!g.collected) drawGem(g); });
